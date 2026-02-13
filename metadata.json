@@ -1,0 +1,5 @@
+{
+  "name": "VNFT Speaking Test",
+  "description": "A lucky draw application for students to randomly select a speaking test question. The app displays a shuffling animation before revealing the final question in both Pinyin and Chinese.",
+  "requestFramePermissions": []
+}
