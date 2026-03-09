@@ -144,5 +144,149 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'rất',
     radical: '彳 (chì) – bộ Sách (bước chân trái)',
     characterType: 'Hình thanh'
+  },
+  {
+    "character": "忙",
+    "pinyin": "máng",
+    "hanViet": "mang",
+    "meaning": "bận",
+    "radical": "忄 (xīn) – bộ Tâm đứng",
+    "characterType": "Hình thanh"
+  },
+  {
+    "character": "他",
+    "pinyin": "tā",
+    "hanViet": "tha",
+    "meaning": "anh ấy, ông ấy, họ",
+    "radical": "亻 (rén) – bộ Nhân đứng",
+    "characterType": "Hình thanh"
+  },
+  {
+    "character": "她",
+    "pinyin": "tā",
+    "hanViet": "tha",
+    "meaning": "cô ấy, chị ấy",
+    "radical": "女 (nǚ) – bộ Nữ",
+    "characterType": "Hình thanh"
+  },
+  {
+    "character": "难",
+    "pinyin": "nán",
+    "hanViet": "nan",
+    "meaning": "khó",
+    "radical": "隹 (zhuī) – bộ Chuy",
+    "characterType": "Hình thanh"
+  },
+  {
+    "character": "八",
+    "pinyin": "bā",
+    "hanViet": "bát",
+    "meaning": "tám",
+    "radical": "八 (bā) – bộ Bát",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "七",
+    "pinyin": "qī",
+    "hanViet": "thất",
+    "meaning": "bảy",
+    "radical": "一 (yī) – bộ Nhất",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "九",
+    "pinyin": "jiǔ",
+    "hanViet": "cửu",
+    "meaning": "chín",
+    "radical": "乙 (yǐ) – bộ Ất",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "学",
+    "pinyin": "xué",
+    "hanViet": "học",
+    "meaning": "học",
+    "radical": "子 (zǐ) – bộ Tử",
+    "characterType": "Hội ý"
+  },
+  {
+    "character": "去",
+    "pinyin": "qù",
+    "hanViet": "khứ",
+    "meaning": "đi",
+    "radical": "厶 (sī) – bộ Khư",
+    "characterType": "Hội ý"
+  },
+  {
+    "character": "北",
+    "pinyin": "běi",
+    "hanViet": "bắc",
+    "meaning": "phía bắc",
+    "radical": "匕 (bǐ) – bộ Chủy",
+    "characterType": "Hội ý"
+  },
+  {
+    "character": "京",
+    "pinyin": "jīng",
+    "hanViet": "kinh",
+    "meaning": "kinh đô",
+    "radical": "亠 (tóu) – bộ Đầu",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "对",
+    "pinyin": "duì",
+    "hanViet": "đối",
+    "meaning": "đúng, đối với",
+    "radical": "寸 (cùn) – bộ Thốn",
+    "characterType": "Hội ý"
+  },
+  {
+    "character": "明",
+    "pinyin": "míng",
+    "hanViet": "minh",
+    "meaning": "sáng, rõ",
+    "radical": "日 (rì) – bộ Nhật",
+    "characterType": "Hội ý"
+  },
+  {
+    "character": "天",
+    "pinyin": "tiān",
+    "hanViet": "thiên",
+    "meaning": "trời, ngày",
+    "radical": "大 (dà) – bộ Đại",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "见",
+    "pinyin": "jiàn",
+    "hanViet": "kiến",
+    "meaning": "thấy, gặp",
+    "radical": "见 (jiàn) – bộ Kiến",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "银",
+    "pinyin": "yín",
+    "hanViet": "ngân",
+    "meaning": "bạc, ngân hàng",
+    "radical": "钅 (jīn) – bộ Kim",
+    "characterType": "Hình thanh"
+  },
+  {
+    "character": "行",
+    "pinyin": "xíng",
+    "hanViet": "hành",
+    "meaning": "đi, được, OK",
+    "radical": "行 (xíng) – bộ Hành",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "二",
+    "pinyin": "èr",
+    "hanViet": "nhị",
+    "meaning": "hai",
+    "radical": "二 (èr) – bộ Nhị",
+    "characterType": "Chỉ sự"
   }
 ];
