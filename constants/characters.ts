@@ -317,7 +317,7 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     "character": "我",
     "pinyin": "wǒ",
     "hanViet": "ngã",
-    "meaning": "tôi, ta, bản thân",
+    "meaning": "tôi",
     "radical": "戈 (gē) – bộ Qua",
     "characterType": "Giả tá"
   }
