@@ -288,5 +288,37 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     "meaning": "hai",
     "radical": "二 (èr) – bộ Nhị",
     "characterType": "Chỉ sự"
+  },
+  {
+    "character": "三",
+    "pinyin": "sān",
+    "hanViet": "tam",
+    "meaning": "ba",
+    "radical": "一 (yī) – bộ Nhất",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "四",
+    "pinyin": "sì",
+    "hanViet": "tứ",
+    "meaning": "bốn",
+    "radical": "口 (kǒu) – bộ Vi",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "今",
+    "pinyin": "jīn",
+    "hanViet": "kim",
+    "meaning": "nay, hiện tại, bây giờ",
+    "radical": "人 (rén) – bộ Nhân",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "我",
+    "pinyin": "wǒ",
+    "hanViet": "ngã",
+    "meaning": "tôi, ta, bản thân",
+    "radical": "戈 (gē) – bộ Qua",
+    "characterType": "Giả tá"
   }
 ];
