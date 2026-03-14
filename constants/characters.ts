@@ -320,5 +320,37 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     "meaning": "tôi",
     "radical": "戈 (gē) – bộ Qua",
     "characterType": "Giả tá"
+  },
+  {
+    "character": "关",
+    "pinyin": "guān",
+    "hanViet": "quan",
+    "meaning": "đóng, tắt, cửa ải, liên quan",
+    "radical": "丷 (bā) – bộ Bát",
+    "characterType": "Hội ý"
+  },
+  {
+    "character": "星",
+    "pinyin": "xīng",
+    "hanViet": "tinh",
+    "meaning": "ngôi sao",
+    "radical": "日 (rì) – bộ Nhật",
+    "characterType": "Hình thanh"
+  },
+  {
+    "character": "期",
+    "pinyin": "qī",
+    "hanViet": "kỳ",
+    "meaning": "kỳ, thời hạn, giai đoạn",
+    "radical": "月 (yuè) – bộ Nguyệt",
+    "characterType": "Hình thanh"
+  },
+  {
+    "character": "几",
+    "pinyin": "jǐ",
+    "hanViet": "kỷ",
+    "meaning": "mấy, bao nhiêu",
+    "radical": "几 (jǐ) – bộ Kỷ",
+    "characterType": "Tượng hình"
   }
 ];
