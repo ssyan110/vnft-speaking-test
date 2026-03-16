@@ -268,10 +268,10 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             lastReviewedAt: reviewedAt,
           };
 
-    setProgressMap({
-      ...progressMap,
+    setProgressMap((previousMap) => ({
+      ...previousMap,
       [currentCard.character]: updatedProgress,
-    });
+    }));
 
     setSessionStats((previousStats) => ({
       reviewed: previousStats.reviewed + 1,
@@ -311,6 +311,30 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
         <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
           <div className="text-5xl font-bold text-emerald-700">0</div>
           <div className="text-lg font-semibold text-emerald-900">Không có chữ khó</div>
+        </div>
+      );
+    }
+
+    if (reviewMode === 'hard') {
+      return (
+        <div className="flex h-full flex-col gap-5">
+          <div className="text-center">
+            <div className="text-5xl font-bold text-emerald-700">{hardCount}</div>
+            <div className="mt-2 text-lg font-semibold text-emerald-900">Chữ khó</div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+            <div className="flex flex-wrap gap-2">
+              {hardCharacters.map((character) => (
+                <div
+                  key={character.character}
+                  className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700"
+                >
+                  {character.character}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       );
     }
@@ -508,7 +532,14 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
           Vòng mới
         </button>
         <button
-          onClick={() => selectMode(reviewMode === 'all' ? 'hard' : 'all')}
+          onClick={() => {
+            if (reviewMode === 'all') {
+              startRound('hard');
+              return;
+            }
+
+            selectMode('all');
+          }}
           disabled={reviewMode === 'all' && hardCount === 0}
           className="rounded-2xl border border-emerald-200 bg-white px-8 py-4 text-base font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-emerald-300 sm:text-lg"
         >
