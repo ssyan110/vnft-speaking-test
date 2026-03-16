@@ -147,23 +147,10 @@ const buildMainQueue = (progressMap: ProgressMap, currentCycle: number) => {
     return progress ? progress.completedCycle < currentCycle : true;
   });
 
-  const hardCharacters = shuffleCharacters(
-    availableCharacters.filter(({ character }) => progressMap[character]?.isHard),
-  );
-  const regularCharacters = shuffleCharacters(
-    availableCharacters.filter(({ character }) => !progressMap[character]?.isHard),
-  );
-
-  return [...hardCharacters, ...regularCharacters].slice(0, ROUND_SIZE);
+  return shuffleCharacters(availableCharacters).slice(0, ROUND_SIZE);
 };
 
 const buildHardQueue = (progressMap: ProgressMap) => shuffleCharacters(getHardCharacters(progressMap)).slice(0, ROUND_SIZE);
-
-const reinsertCard = (queue: ChineseCharacter[], card: ChineseCharacter, offset: number) => {
-  const nextQueue = [...queue];
-  nextQueue.splice(Math.min(offset, nextQueue.length), 0, card);
-  return nextQueue;
-};
 
 const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) => {
   const storedState = loadStoredState();
@@ -250,6 +237,8 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
 
     const reviewedAt = Date.now();
     const currentCardProgress = progressMap[currentCard.character] ?? createProgressRecord(currentCard.character);
+    const completedCycle =
+      reviewMode === 'all' ? currentCycle : currentCardProgress.completedCycle;
     const updatedProgress: CharacterProgress =
       rating === 'hard'
         ? {
@@ -257,6 +246,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             seenCount: currentCardProgress.seenCount + 1,
             hardCount: currentCardProgress.hardCount + 1,
             isHard: true,
+            completedCycle,
             lastReviewedAt: reviewedAt,
           }
         : {
@@ -264,7 +254,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             seenCount: currentCardProgress.seenCount + 1,
             easyCount: currentCardProgress.easyCount + 1,
             isHard: false,
-            completedCycle: currentCycle,
+            completedCycle,
             lastReviewedAt: reviewedAt,
           };
 
@@ -279,8 +269,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       easy: previousStats.easy + (rating === 'easy' ? 1 : 0),
     }));
 
-    const remainingQueue = roundQueue.slice(1);
-    const nextQueue = rating === 'hard' ? reinsertCard(remainingQueue, currentCard, 2) : remainingQueue;
+    const nextQueue = roundQueue.slice(1);
 
     setRoundQueue(nextQueue);
     setShowExtraInfo(false);
