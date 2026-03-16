@@ -1,5 +1,5 @@
 {
-  "name": "VNFT Chinese Speaking Test",
-  "description": "An adaptive practice app for VNFT Chinese speaking and character recognition. The character deck currently includes 57 Chinese characters with pinyin, Hán Việt, meaning, radical, and character type.",
+  "name": "Nhận diện chữ Hán & Tập nói",
+  "description": "An adaptive practice app for Chinese speaking and character recognition. The character deck currently includes 57 Chinese characters with pinyin, Hán Việt, meaning, radical, and character type.",
   "requestFramePermissions": []
 }

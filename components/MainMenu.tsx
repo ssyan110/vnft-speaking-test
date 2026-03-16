@@ -15,9 +15,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ onSelectCharacterRecognition, onSel
             alt="VNFT Group Logo"
             className="mx-auto mb-6 w-28 sm:w-40 lg:w-48"
           />
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-500">VNFT Practice</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-sky-800 sm:text-5xl lg:text-6xl">
-            Ứng dụng luyện tập
+            Nhận diện chữ Hán &amp; Tập nói
           </h1>
         </header>
 

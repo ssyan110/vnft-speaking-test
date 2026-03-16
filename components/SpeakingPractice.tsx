@@ -69,7 +69,7 @@ const SpeakingPractice: React.FC<SpeakingPracticeProps> = ({ onBack }) => {
             </button>
 
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-xl font-bold text-sky-800 sm:text-2xl">VNFT Speaking Test</h1>
+              <h1 className="truncate text-xl font-bold text-sky-800 sm:text-2xl">Nhận diện chữ Hán &amp; Tập nói</h1>
             </div>
           </div>
         </div>
