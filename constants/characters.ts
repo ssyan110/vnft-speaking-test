@@ -352,5 +352,45 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     "meaning": "mấy, bao nhiêu",
     "radical": "几 (jǐ) – bộ Kỷ",
     "characterType": "Tượng hình"
+  },
+  {
+    "character": "上",
+    "pinyin": "shàng",
+    "hanViet": "thượng",
+    "meaning": "trên, lên, phía trên",
+    "radical": "一 (yī) – bộ Nhất",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "下",
+    "pinyin": "xià",
+    "hanViet": "hạ",
+    "meaning": "dưới, xuống, phía dưới",
+    "radical": "一 (yī) – bộ Nhất",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "日",
+    "pinyin": "rì",
+    "hanViet": "nhật",
+    "meaning": "mặt trời, ngày",
+    "radical": "日 (rì) – bộ Nhật",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "月",
+    "pinyin": "yuè",
+    "hanViet": "nguyệt",
+    "meaning": "mặt trăng, tháng",
+    "radical": "月 (yuè) – bộ Nguyệt",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "生",
+    "pinyin": "shēng",
+    "hanViet": "sinh",
+    "meaning": "sinh, sống, sinh ra",
+    "radical": "生 (shēng) – bộ Sinh",
+    "characterType": "Chỉ sự"
   }
 ];
