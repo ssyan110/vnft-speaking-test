@@ -392,5 +392,69 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     "meaning": "sinh, sống, sinh ra",
     "radical": "生 (shēng) – bộ Sinh",
     "characterType": "Chỉ sự"
+  },
+  {
+    "character": "了",
+    "pinyin": "le",
+    "hanViet": "liễu",
+    "meaning": "trợ từ chỉ sự hoàn thành; xong, rồi",
+    "radical": "乙 (yǐ) – bộ Ất",
+    "characterType": "Giả tá"
+  },
+  {
+    "character": "木",
+    "pinyin": "mù",
+    "hanViet": "mộc",
+    "meaning": "cây, gỗ",
+    "radical": "木 (mù) – bộ Mộc",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "休",
+    "pinyin": "xiū",
+    "hanViet": "hưu",
+    "meaning": "nghỉ ngơi",
+    "radical": "亻 (rén) – bộ Nhân đứng",
+    "characterType": "Hội ý"
+  },
+  {
+    "character": "亡",
+    "pinyin": "wáng",
+    "hanViet": "vong",
+    "meaning": "mất, chết, diệt vong",
+    "radical": "亠 (tóu) – bộ Đầu",
+    "characterType": "Chỉ sự"
+  },
+  {
+    "character": "也",
+    "pinyin": "yě",
+    "hanViet": "dã",
+    "meaning": "cũng",
+    "radical": "乙 (yǐ) – bộ Ất",
+    "characterType": "Giả tá"
+  },
+  {
+    "character": "又",
+    "pinyin": "yòu",
+    "hanViet": "hựu",
+    "meaning": "lại, nữa",
+    "radical": "又 (yòu) – bộ Hựu",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "子",
+    "pinyin": "zǐ",
+    "hanViet": "tử",
+    "meaning": "con, con cái, đứa trẻ",
+    "radical": "子 (zǐ) – bộ Tử",
+    "characterType": "Tượng hình"
+  },
+  {
+    "character": "小",
+    "pinyin": "xiǎo",
+    "hanViet": "tiểu",
+    "meaning": "nhỏ, bé",
+    "radical": "小 (xiǎo) – bộ Tiểu",
+    "characterType": "Tượng hình"
   }
 ];
