@@ -1,21 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { CHINESE_CHARACTERS } from '../constants/characters';
-import {
-  CharacterProgress,
-  ChineseCharacter,
-  PracticeRating,
-  PracticeSessionStats,
-} from '../types';
+import { CharacterProgress, ChineseCharacter, PracticeRating, PracticeSessionStats } from '../types';
 
 const ROUND_SIZE = 10;
-const STORAGE_KEY = 'vnft-character-progress-v1';
-const DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_BOX = 4;
-const BOX_INTERVALS_MS = [0, DAY_MS, 3 * DAY_MS, 7 * DAY_MS, 14 * DAY_MS];
+const STORAGE_KEY = 'vnft-character-progress-v2';
+const LEGACY_STORAGE_KEY = 'vnft-character-progress-v1';
 
 type PracticeState = 'idle' | 'prompt' | 'answer' | 'round_complete';
+type ReviewMode = 'all' | 'hard';
 type ProgressMap = Record<string, CharacterProgress>;
-type RoundStruggleMap = Record<string, { again: number; hard: number }>;
+
+interface StoredPracticeState {
+  currentCycle: number;
+  progressMap: ProgressMap;
+}
 
 interface CharacterRecognitionProps {
   onBack: () => void;
@@ -30,23 +28,19 @@ const CHARACTER_KEYS = new Set(CHINESE_CHARACTERS.map(({ character }) => charact
 
 const createInitialStats = (): PracticeSessionStats => ({
   reviewed: 0,
-  again: 0,
   hard: 0,
   easy: 0,
-  masteredThisRound: 0,
 });
 
 const createProgressRecord = (character: string): CharacterProgress => ({
   character,
-  box: 0,
-  streak: 0,
-  lapses: 0,
   seenCount: 0,
+  hardCount: 0,
+  easyCount: 0,
+  isHard: false,
+  completedCycle: -1,
   lastReviewedAt: null,
-  nextDueAt: 0,
 });
-
-const clampBox = (value: number) => Math.min(MAX_BOX, Math.max(0, value));
 
 const toNonNegativeNumber = (value: unknown, fallback = 0) =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
@@ -61,53 +55,70 @@ const sanitizeProgress = (raw: unknown): ProgressMap => {
       return progressMap;
     }
 
-    const entry = value as Partial<CharacterProgress>;
-    const box = clampBox(toNonNegativeNumber(entry.box));
+    const entry = value as Partial<CharacterProgress> & {
+      lapses?: unknown;
+      streak?: unknown;
+    };
 
     progressMap[character] = {
       character,
-      box,
-      streak: toNonNegativeNumber(entry.streak),
-      lapses: toNonNegativeNumber(entry.lapses),
       seenCount: toNonNegativeNumber(entry.seenCount),
+      hardCount: toNonNegativeNumber(entry.hardCount, toNonNegativeNumber(entry.lapses)),
+      easyCount: toNonNegativeNumber(entry.easyCount, toNonNegativeNumber(entry.streak)),
+      isHard: Boolean(entry.isHard),
+      completedCycle:
+        typeof entry.completedCycle === 'number' && Number.isFinite(entry.completedCycle)
+          ? Math.floor(entry.completedCycle)
+          : -1,
       lastReviewedAt:
         typeof entry.lastReviewedAt === 'number' && Number.isFinite(entry.lastReviewedAt)
           ? entry.lastReviewedAt
           : null,
-      nextDueAt: toNonNegativeNumber(entry.nextDueAt),
     };
 
     return progressMap;
   }, {});
 };
 
-const loadProgress = (): ProgressMap => {
+const loadStoredState = (): StoredPracticeState => {
   if (typeof window === 'undefined') {
-    return {};
+    return {
+      currentCycle: 0,
+      progressMap: {},
+    };
   }
 
   try {
-    const rawProgress = window.localStorage.getItem(STORAGE_KEY);
-    return rawProgress ? sanitizeProgress(JSON.parse(rawProgress)) : {};
+    const current = window.localStorage.getItem(STORAGE_KEY);
+    if (current) {
+      const parsed = JSON.parse(current) as Partial<StoredPracticeState> | Record<string, unknown>;
+      return {
+        currentCycle:
+          typeof parsed.currentCycle === 'number' && Number.isFinite(parsed.currentCycle)
+            ? Math.max(0, Math.floor(parsed.currentCycle))
+            : 0,
+        progressMap: sanitizeProgress('progressMap' in parsed ? parsed.progressMap : parsed),
+      };
+    }
+
+    const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      return {
+        currentCycle: 0,
+        progressMap: sanitizeProgress(JSON.parse(legacy)),
+      };
+    }
   } catch {
-    return {};
-  }
-};
-
-const compareDueCards = (left: ChineseCharacter, right: ChineseCharacter, progressMap: ProgressMap) => {
-  const leftProgress = progressMap[left.character];
-  const rightProgress = progressMap[right.character];
-
-  if (!leftProgress || !rightProgress) {
-    return left.character.localeCompare(right.character);
+    return {
+      currentCycle: 0,
+      progressMap: {},
+    };
   }
 
-  return (
-    leftProgress.box - rightProgress.box ||
-    leftProgress.nextDueAt - rightProgress.nextDueAt ||
-    rightProgress.lapses - leftProgress.lapses ||
-    left.character.localeCompare(right.character)
-  );
+  return {
+    currentCycle: 0,
+    progressMap: {},
+  };
 };
 
 const shuffleCharacters = (characters: ChineseCharacter[]) => {
@@ -121,65 +132,32 @@ const shuffleCharacters = (characters: ChineseCharacter[]) => {
   return shuffled;
 };
 
-const buildRoundQueue = (progressMap: ProgressMap, now: number) => {
-  const dueCards = CHINESE_CHARACTERS.filter(({ character }) => {
+const countCompletedInCycle = (progressMap: ProgressMap, currentCycle: number) =>
+  CHINESE_CHARACTERS.filter(({ character }) => {
     const progress = progressMap[character];
-    return progress ? progress.nextDueAt <= now : false;
-  }).sort((left, right) => compareDueCards(left, right, progressMap));
+    return progress ? progress.completedCycle >= currentCycle : false;
+  }).length;
 
-  if (dueCards.length >= ROUND_SIZE) {
-    return dueCards.slice(0, ROUND_SIZE);
-  }
+const getHardCharacters = (progressMap: ProgressMap) =>
+  CHINESE_CHARACTERS.filter(({ character }) => progressMap[character]?.isHard);
 
-  const unseenCards = shuffleCharacters(
-    CHINESE_CHARACTERS.filter(({ character }) => !progressMap[character]),
+const buildMainQueue = (progressMap: ProgressMap, currentCycle: number) => {
+  const availableCharacters = CHINESE_CHARACTERS.filter(({ character }) => {
+    const progress = progressMap[character];
+    return progress ? progress.completedCycle < currentCycle : true;
+  });
+
+  const hardCharacters = shuffleCharacters(
+    availableCharacters.filter(({ character }) => progressMap[character]?.isHard),
+  );
+  const regularCharacters = shuffleCharacters(
+    availableCharacters.filter(({ character }) => !progressMap[character]?.isHard),
   );
 
-  return [...dueCards, ...unseenCards.slice(0, ROUND_SIZE - dueCards.length)];
+  return [...hardCharacters, ...regularCharacters].slice(0, ROUND_SIZE);
 };
 
-const getUpdatedProgress = (
-  currentProgress: CharacterProgress,
-  rating: PracticeRating,
-  now: number,
-): CharacterProgress => {
-  if (rating === 'again') {
-    return {
-      ...currentProgress,
-      box: 0,
-      streak: 0,
-      lapses: currentProgress.lapses + 1,
-      seenCount: currentProgress.seenCount + 1,
-      lastReviewedAt: now,
-      nextDueAt: now,
-    };
-  }
-
-  if (rating === 'hard') {
-    const nextBox = clampBox(currentProgress.box - 1);
-
-    return {
-      ...currentProgress,
-      box: nextBox,
-      streak: 0,
-      lapses: currentProgress.lapses + 1,
-      seenCount: currentProgress.seenCount + 1,
-      lastReviewedAt: now,
-      nextDueAt: now + BOX_INTERVALS_MS[nextBox],
-    };
-  }
-
-  const nextBox = clampBox(currentProgress.box + 1);
-
-  return {
-    ...currentProgress,
-    box: nextBox,
-    streak: currentProgress.streak + 1,
-    seenCount: currentProgress.seenCount + 1,
-    lastReviewedAt: now,
-    nextDueAt: now + BOX_INTERVALS_MS[nextBox],
-  };
-};
+const buildHardQueue = (progressMap: ProgressMap) => shuffleCharacters(getHardCharacters(progressMap)).slice(0, ROUND_SIZE);
 
 const reinsertCard = (queue: ChineseCharacter[], card: ChineseCharacter, offset: number) => {
   const nextQueue = [...queue];
@@ -187,26 +165,14 @@ const reinsertCard = (queue: ChineseCharacter[], card: ChineseCharacter, offset:
   return nextQueue;
 };
 
-const getDueCount = (progressMap: ProgressMap, now: number) =>
-  CHINESE_CHARACTERS.filter(({ character }) => {
-    const progress = progressMap[character];
-    return progress ? progress.nextDueAt <= now : false;
-  }).length;
-
-const getMasteredCount = (progressMap: ProgressMap) =>
-  CHINESE_CHARACTERS.filter(({ character }) => {
-    const progress = progressMap[character];
-    return progress ? progress.box >= MAX_BOX : false;
-  }).length;
-
-const getBoxLabel = (box: number) => (box === 0 ? 'Mới / Yếu' : `Hộp ${box}`);
-
 const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) => {
+  const storedState = loadStoredState();
   const [practiceState, setPracticeState] = useState<PracticeState>('idle');
+  const [reviewMode, setReviewMode] = useState<ReviewMode>('all');
   const [roundQueue, setRoundQueue] = useState<ChineseCharacter[]>([]);
-  const [progressMap, setProgressMap] = useState<ProgressMap>(() => loadProgress());
-  const [sessionStats, setSessionStats] = useState<PracticeSessionStats>(() => createInitialStats());
-  const [roundStruggles, setRoundStruggles] = useState<RoundStruggleMap>({});
+  const [progressMap, setProgressMap] = useState<ProgressMap>(storedState.progressMap);
+  const [currentCycle, setCurrentCycle] = useState<number>(storedState.currentCycle);
+  const [sessionStats, setSessionStats] = useState<PracticeSessionStats>(createInitialStats());
   const [showExtraInfo, setShowExtraInfo] = useState(false);
 
   useEffect(() => {
@@ -214,40 +180,60 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       return;
     }
 
-    if (Object.keys(progressMap).length === 0) {
+    const hasProgress = Object.keys(progressMap).length > 0 || currentCycle > 0;
+    if (!hasProgress) {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progressMap));
-  }, [progressMap]);
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        currentCycle,
+        progressMap,
+      }),
+    );
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  }, [currentCycle, progressMap]);
 
   const currentCard = roundQueue[0] ?? null;
   const currentProgress = currentCard ? progressMap[currentCard.character] ?? createProgressRecord(currentCard.character) : null;
-  const now = Date.now();
-  const dueCount = getDueCount(progressMap, now);
-  const masteredCount = getMasteredCount(progressMap);
+  const hardCharacters = getHardCharacters(progressMap);
+  const hardCount = hardCharacters.length;
+  const doneCount = countCompletedInCycle(progressMap, currentCycle);
+  const cardsLeft = practiceState === 'round_complete' ? 0 : roundQueue.length;
   const discoveredCount = Object.keys(progressMap).length;
-  const hasUnseenCards = CHINESE_CHARACTERS.some(({ character }) => !progressMap[character]);
-  const cardsLeftInRound = practiceState === 'round_complete' ? 0 : roundQueue.length;
-  const hasAvailableCards = dueCount > 0 || hasUnseenCards;
-  const hardestCards = Object.entries(roundStruggles)
-    .map(([character, struggles]) => ({
-      card: CHARACTER_LOOKUP[character],
-      ...struggles,
-      score: struggles.again * 2 + struggles.hard,
-    }))
-    .filter(({ card, score }) => Boolean(card) && score > 0)
-    .sort((left, right) => right.score - left.score || right.again - left.again || right.hard - left.hard)
-    .slice(0, 3);
 
-  const startRound = () => {
-    const nextQueue = buildRoundQueue(progressMap, Date.now());
-    setRoundQueue(nextQueue);
+  const resetRound = () => {
+    setRoundQueue([]);
     setSessionStats(createInitialStats());
-    setRoundStruggles({});
     setShowExtraInfo(false);
+  };
+
+  const startRound = (mode = reviewMode) => {
+    let nextCycle = currentCycle;
+
+    if (mode === 'all' && countCompletedInCycle(progressMap, currentCycle) === CHINESE_CHARACTERS.length) {
+      nextCycle = currentCycle + 1;
+      setCurrentCycle(nextCycle);
+    }
+
+    const nextQueue = mode === 'hard' ? buildHardQueue(progressMap) : buildMainQueue(progressMap, nextCycle);
+    resetRound();
+    setReviewMode(mode);
+    setRoundQueue(nextQueue);
     setPracticeState(nextQueue.length > 0 ? 'prompt' : 'round_complete');
+  };
+
+  const selectMode = (mode: ReviewMode) => {
+    if (mode === reviewMode) {
+      return;
+    }
+
+    setReviewMode(mode);
+    resetRound();
+    setPracticeState('idle');
   };
 
   const handleShowAnswer = () => {
@@ -264,43 +250,37 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
 
     const reviewedAt = Date.now();
     const currentCardProgress = progressMap[currentCard.character] ?? createProgressRecord(currentCard.character);
-    const updatedProgress = getUpdatedProgress(currentCardProgress, rating, reviewedAt);
-    const nextProgressMap = {
+    const updatedProgress: CharacterProgress =
+      rating === 'hard'
+        ? {
+            ...currentCardProgress,
+            seenCount: currentCardProgress.seenCount + 1,
+            hardCount: currentCardProgress.hardCount + 1,
+            isHard: true,
+            lastReviewedAt: reviewedAt,
+          }
+        : {
+            ...currentCardProgress,
+            seenCount: currentCardProgress.seenCount + 1,
+            easyCount: currentCardProgress.easyCount + 1,
+            isHard: false,
+            completedCycle: currentCycle,
+            lastReviewedAt: reviewedAt,
+          };
+
+    setProgressMap({
       ...progressMap,
       [currentCard.character]: updatedProgress,
-    };
-
-    setProgressMap(nextProgressMap);
-
-    const masteredIncrement =
-      rating === 'easy' && currentCardProgress.box < MAX_BOX && updatedProgress.box === MAX_BOX ? 1 : 0;
+    });
 
     setSessionStats((previousStats) => ({
       reviewed: previousStats.reviewed + 1,
-      again: previousStats.again + (rating === 'again' ? 1 : 0),
       hard: previousStats.hard + (rating === 'hard' ? 1 : 0),
       easy: previousStats.easy + (rating === 'easy' ? 1 : 0),
-      masteredThisRound: previousStats.masteredThisRound + masteredIncrement,
     }));
 
-    if (rating !== 'easy') {
-      const currentStruggles = roundStruggles[currentCard.character] ?? { again: 0, hard: 0 };
-      setRoundStruggles({
-        ...roundStruggles,
-        [currentCard.character]: {
-          ...currentStruggles,
-          [rating]: currentStruggles[rating] + 1,
-        },
-      });
-    }
-
     const remainingQueue = roundQueue.slice(1);
-    const nextQueue =
-      rating === 'again'
-        ? reinsertCard(remainingQueue, currentCard, 2)
-        : rating === 'hard'
-          ? reinsertCard(remainingQueue, currentCard, 4)
-          : remainingQueue;
+    const nextQueue = rating === 'hard' ? reinsertCard(remainingQueue, currentCard, 2) : remainingQueue;
 
     setRoundQueue(nextQueue);
     setShowExtraInfo(false);
@@ -309,329 +289,182 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
 
   const handleResetProgress = () => {
     if (typeof window !== 'undefined') {
-      const shouldReset = window.confirm('Xóa toàn bộ tiến độ luyện chữ đã lưu trên trình duyệt này?');
+      const shouldReset = window.confirm('Xóa toàn bộ tiến độ?');
       if (!shouldReset) {
         return;
       }
 
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     }
 
     setProgressMap({});
-    setRoundQueue([]);
-    setSessionStats(createInitialStats());
-    setRoundStruggles({});
-    setShowExtraInfo(false);
+    setCurrentCycle(0);
+    resetRound();
     setPracticeState('idle');
+    setReviewMode('all');
   };
 
-  const renderContent = () => {
-    if (practiceState === 'idle') {
+  const renderIdle = () => {
+    if (reviewMode === 'hard' && hardCount === 0) {
       return (
-        <div className="h-full flex flex-col justify-center text-center gap-6">
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">
-              Mobile-first review
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-emerald-900">Một thẻ, một quyết định</h2>
-            <p className="text-sm sm:text-base text-emerald-700 max-w-xl mx-auto">
-              Màn hình đã được rút gọn để học sinh không phải cuộn trang. Nhìn chữ, nói pinyin + nghĩa,
-              rồi chấm ngay để hệ thống lặp lại chữ còn yếu.
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-emerald-50 p-4 text-left">
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bước 1</p>
-              <p className="mt-2 font-semibold text-emerald-900">Nhìn chữ</p>
-              <p className="mt-1 text-sm text-emerald-700">Tập trung vào mặt chữ trước khi lật.</p>
-            </div>
-            <div className="rounded-2xl bg-emerald-50 p-4 text-left">
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bước 2</p>
-              <p className="mt-2 font-semibold text-emerald-900">Tự nói</p>
-              <p className="mt-1 text-sm text-emerald-700">Đọc pinyin và nói nghĩa thành tiếng.</p>
-            </div>
-            <div className="rounded-2xl bg-emerald-50 p-4 text-left">
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bước 3</p>
-              <p className="mt-2 font-semibold text-emerald-900">Tự chấm</p>
-              <p className="mt-1 text-sm text-emerald-700">Chữ khó quay lại nhanh hơn trong vòng học.</p>
-            </div>
-          </div>
-
-          <p className="text-sm text-emerald-600">
-            Đã mở: {discoveredCount}/{CHINESE_CHARACTERS.length} chữ
-          </p>
-        </div>
-      );
-    }
-
-    if (practiceState === 'prompt' && currentCard) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center text-center gap-5">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">
-              Tự trả lời trước khi lật
-            </p>
-            <p className="text-sm sm:text-base text-emerald-700">
-              Đọc <span className="font-semibold text-emerald-900">pinyin + nghĩa</span> của chữ này.
-            </p>
-          </div>
-
-          <div className="text-[6rem] leading-none font-bold text-emerald-700 sm:text-[8rem] lg:text-[10rem]">
-            {currentCard.character}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              {getBoxLabel(currentProgress?.box ?? 0)}
-            </span>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-              Đã gặp {currentProgress?.seenCount ?? 0} lần
-            </span>
-          </div>
-        </div>
-      );
-    }
-
-    if (practiceState === 'answer' && currentCard) {
-      return (
-        <div className="h-full flex flex-col gap-4 sm:gap-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">Đáp án</p>
-              <div className="mt-3 text-5xl font-bold text-emerald-700 sm:text-6xl">{currentCard.character}</div>
-            </div>
-
-            <button
-              onClick={() => setShowExtraInfo((previous) => !previous)}
-              className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
-            >
-              {showExtraInfo ? 'Ẩn chi tiết' : 'Thông tin thêm'}
-            </button>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-emerald-50 p-4 sm:p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Pinyin</p>
-              <p className="mt-2 text-3xl font-bold text-emerald-900">{currentCard.pinyin}</p>
-            </div>
-            <div className="rounded-2xl bg-emerald-50 p-4 sm:p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Nghĩa</p>
-              <p className="mt-2 text-xl font-semibold text-emerald-900 sm:text-2xl">{currentCard.meaning}</p>
-            </div>
-          </div>
-
-          {showExtraInfo && (
-            <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Hán Việt</p>
-                  <p className="mt-1 font-semibold text-emerald-900">{currentCard.hanViet}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bộ thủ</p>
-                  <p className="mt-1 text-sm text-emerald-700">{currentCard.radical}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Loại chữ</p>
-                  <p className="mt-1 text-sm font-semibold text-emerald-700">{currentCard.characterType}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="rounded-2xl bg-emerald-100/70 px-4 py-3 text-sm text-emerald-800">
-            Tự chấm ngay bên dưới. Chọn Lặp lại ngay nếu muốn đưa chữ này quay lại rất sớm trong vòng học.
-          </div>
+        <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+          <div className="text-5xl font-bold text-emerald-700">0</div>
+          <div className="text-lg font-semibold text-emerald-900">Không có chữ khó</div>
         </div>
       );
     }
 
     return (
-      <div className="h-full flex flex-col gap-5">
-        <div className="text-center sm:text-left">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">
-            Round complete
-          </p>
-          <h2 className="mt-3 text-3xl font-bold text-emerald-900 sm:text-4xl">Kết thúc vòng học</h2>
-          <p className="mt-3 text-sm sm:text-base text-emerald-700">
-            {sessionStats.reviewed > 0
-              ? `Bạn đã xử lý ${sessionStats.reviewed} lượt trong vòng này.`
-              : hasAvailableCards
-                ? 'Vòng hiện tại chưa có lượt chấm điểm. Bắt đầu lại để lấy bộ thẻ mới.'
-                : 'Hiện chưa có chữ mới hoặc chữ đến hạn trong trình duyệt này.'}
-          </p>
+      <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+        <div className="text-5xl font-bold text-emerald-700">
+          {reviewMode === 'hard' ? hardCount : CHINESE_CHARACTERS.length - doneCount}
         </div>
-
-        <div className="grid gap-3 grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-2xl bg-emerald-50 p-4 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Reviewed</p>
-            <p className="mt-2 text-2xl font-bold text-emerald-800">{sessionStats.reviewed}</p>
-          </div>
-          <div className="rounded-2xl bg-rose-50 p-4 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-rose-500">Again</p>
-            <p className="mt-2 text-2xl font-bold text-rose-700">{sessionStats.again}</p>
-          </div>
-          <div className="rounded-2xl bg-amber-50 p-4 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-amber-500">Hard</p>
-            <p className="mt-2 text-2xl font-bold text-amber-700">{sessionStats.hard}</p>
-          </div>
-          <div className="rounded-2xl bg-emerald-100 p-4 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-600">Easy</p>
-            <p className="mt-2 text-2xl font-bold text-emerald-700">{sessionStats.easy}</p>
-          </div>
-          <div className="rounded-2xl bg-sky-50 p-4 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-sky-500">Mastered</p>
-            <p className="mt-2 text-2xl font-bold text-sky-700">{sessionStats.masteredThisRound}</p>
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-          <h3 className="text-lg font-bold text-emerald-900">Chữ cần ôn thêm</h3>
-          {hardestCards.length > 0 ? (
-            <div className="mt-3 space-y-3">
-              {hardestCards.map(({ card, again, hard, score }) => (
-                <div
-                  key={card.character}
-                  className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 border border-emerald-200"
-                >
-                  <div>
-                    <p className="text-3xl font-bold text-emerald-800">{card.character}</p>
-                    <p className="text-sm text-emerald-700">
-                      {card.pinyin} • {card.meaning}
-                    </p>
-                  </div>
-                  <div className="text-right text-xs sm:text-sm text-emerald-700">
-                    <p>Điểm khó: {score}</p>
-                    <p>Again: {again}</p>
-                    <p>Hard: {hard}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-emerald-700">
-              Không có chữ nào bị đánh dấu Again hoặc Hard trong vòng này.
-            </p>
-          )}
+        <div className="text-lg font-semibold text-emerald-900">
+          {reviewMode === 'hard' ? 'Chữ khó' : 'Chữ còn lại'}
         </div>
       </div>
     );
   };
 
-  const renderCoachPanel = () => {
-    if (practiceState === 'round_complete') {
-      return (
-        <>
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Tiếp theo</p>
-            <p className="mt-2 text-lg font-bold text-emerald-900">Bắt đầu vòng mới</p>
-            <p className="mt-2 text-sm text-emerald-700">
-              Hệ thống sẽ ưu tiên chữ đến hạn trước, sau đó thêm chữ mới nếu còn chỗ trong vòng.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Tiến độ</p>
-            <div className="mt-3 space-y-3 text-sm text-emerald-800">
-              <div className="flex items-center justify-between">
-                <span>Đã vững</span>
-                <span className="font-semibold">{masteredCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Đến hạn</span>
-                <span className="font-semibold">{dueCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Đã mở</span>
-                <span className="font-semibold">{discoveredCount}</span>
-              </div>
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    if (practiceState === 'answer' && currentCard && currentProgress) {
-      return (
-        <>
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Thẻ hiện tại</p>
-            <p className="mt-2 text-4xl font-bold text-emerald-800">{currentCard.character}</p>
-            <p className="mt-1 text-sm text-emerald-700">{currentCard.pinyin}</p>
-            <div className="mt-4 space-y-3 text-sm text-emerald-800">
-              <div className="flex items-center justify-between">
-                <span>Vị trí</span>
-                <span className="font-semibold">{getBoxLabel(currentProgress.box)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Đã gặp</span>
-                <span className="font-semibold">{currentProgress.seenCount} lần</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Lapses</span>
-                <span className="font-semibold">{currentProgress.lapses}</span>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Mẹo chấm</p>
-            <div className="mt-3 space-y-3 text-sm text-emerald-800">
-              <p><span className="font-semibold">Lặp lại ngay:</span> quên hoặc đoán sai.</p>
-              <p><span className="font-semibold">Khó:</span> nhớ được nhưng chậm hoặc thiếu chắc chắn.</p>
-              <p><span className="font-semibold">Dễ:</span> gọi ra nhanh, đúng pinyin và nghĩa.</p>
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    if (practiceState === 'prompt' && currentCard && currentProgress) {
-      return (
-        <>
-          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Trong vòng</p>
-            <p className="mt-2 text-4xl font-bold text-emerald-800">{cardsLeftInRound}</p>
-            <p className="mt-1 text-sm text-emerald-700">Còn lại trước khi kết thúc vòng hiện tại.</p>
-          </div>
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Gợi ý</p>
-            <div className="mt-3 space-y-3 text-sm text-emerald-800">
-              <p>Nhìn chữ vài giây trước khi lật.</p>
-              <p>Ưu tiên gọi đúng pinyin rồi mới nói nghĩa.</p>
-              <p>Đừng bỏ qua chữ khó, vì nó sẽ quay lại nhanh hơn.</p>
-            </div>
-          </div>
-        </>
-      );
+  const renderPrompt = () => {
+    if (!currentCard) {
+      return null;
     }
 
     return (
-      <>
-        <div className="rounded-2xl border border-emerald-200 bg-white p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Deck</p>
-          <p className="mt-2 text-4xl font-bold text-emerald-800">{CHINESE_CHARACTERS.length}</p>
-          <p className="mt-1 text-sm text-emerald-700">Tổng số chữ hiện có trong bộ luyện tập.</p>
+      <div className="flex h-full flex-col items-center justify-center gap-5 text-center">
+        <div className="text-[6rem] font-bold leading-none text-emerald-700 sm:text-[8rem] lg:text-[10rem]">
+          {currentCard.character}
         </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Nguyên tắc</p>
-          <div className="mt-3 space-y-3 text-sm text-emerald-800">
-            <p>Tập theo vòng ngắn để không bị quá tải trên điện thoại.</p>
-            <p>Thanh hành động luôn nằm dưới cùng, không cần cuộn để bấm.</p>
-            <p>Desktop giữ thêm bảng hỗ trợ bên phải để theo dõi tiến độ.</p>
+        <div className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
+          Nói pinyin + nghĩa
+        </div>
+      </div>
+    );
+  };
+
+  const renderAnswer = () => {
+    if (!currentCard) {
+      return null;
+    }
+
+    return (
+      <div className="flex h-full flex-col gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="text-5xl font-bold text-emerald-700 sm:text-6xl">{currentCard.character}</div>
+          <button
+            onClick={() => setShowExtraInfo((previous) => !previous)}
+            className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+          >
+            {showExtraInfo ? 'Ẩn' : 'Thêm'}
+          </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl bg-emerald-50 p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Pinyin</div>
+            <div className="mt-2 text-3xl font-bold text-emerald-900">{currentCard.pinyin}</div>
+          </div>
+          <div className="rounded-2xl bg-emerald-50 p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Nghĩa</div>
+            <div className="mt-2 text-xl font-semibold text-emerald-900 sm:text-2xl">{currentCard.meaning}</div>
           </div>
         </div>
-      </>
+
+        {showExtraInfo && (
+          <div className="grid gap-3 rounded-2xl border border-emerald-200 bg-white p-4 sm:grid-cols-3">
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Hán Việt</div>
+              <div className="mt-1 font-semibold text-emerald-900">{currentCard.hanViet}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Bộ thủ</div>
+              <div className="mt-1 text-sm text-emerald-700">{currentCard.radical}</div>
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Loại chữ</div>
+              <div className="mt-1 text-sm font-semibold text-emerald-700">{currentCard.characterType}</div>
+            </div>
+          </div>
+        )}
+      </div>
     );
+  };
+
+  const renderRoundComplete = () => {
+    const visibleHardCharacters = hardCharacters.slice(0, 8);
+
+    return (
+      <div className="flex h-full flex-col gap-5">
+        <div className="text-center">
+          <div className="text-3xl font-bold text-emerald-900">Xong vòng</div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-emerald-50 p-4 text-center">
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Đã xem</div>
+            <div className="mt-2 text-2xl font-bold text-emerald-800">{sessionStats.reviewed}</div>
+          </div>
+          <div className="rounded-2xl bg-amber-50 p-4 text-center">
+            <div className="text-xs uppercase tracking-[0.18em] text-amber-500">Khó</div>
+            <div className="mt-2 text-2xl font-bold text-amber-700">{sessionStats.hard}</div>
+          </div>
+          <div className="rounded-2xl bg-emerald-100 p-4 text-center">
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Dễ</div>
+            <div className="mt-2 text-2xl font-bold text-emerald-700">{sessionStats.easy}</div>
+          </div>
+        </div>
+
+        {hardCount > 0 && (
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+            <div className="mb-3 text-sm font-semibold text-emerald-800">Chữ khó</div>
+            <div className="flex flex-wrap gap-2">
+              {visibleHardCharacters.map((character) => (
+                <button
+                  key={character.character}
+                  onClick={() => {
+                    setReviewMode('hard');
+                    setPracticeState('idle');
+                    resetRound();
+                  }}
+                  className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700"
+                >
+                  {character.character}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderContent = () => {
+    if (practiceState === 'idle') {
+      return renderIdle();
+    }
+
+    if (practiceState === 'prompt') {
+      return renderPrompt();
+    }
+
+    if (practiceState === 'answer') {
+      return renderAnswer();
+    }
+
+    return renderRoundComplete();
   };
 
   const renderFooterActions = () => {
     if (practiceState === 'idle') {
       return (
         <button
-          onClick={startRound}
-          className="w-full sm:w-auto bg-emerald-500 text-white font-bold text-lg sm:text-xl py-4 px-8 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
+          onClick={() => startRound(reviewMode)}
+          disabled={reviewMode === 'hard' && hardCount === 0}
+          className="w-full sm:w-auto rounded-2xl bg-emerald-500 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
         >
-          Bắt đầu vòng học
+          Bắt đầu
         </button>
       );
     }
@@ -640,7 +473,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       return (
         <button
           onClick={handleShowAnswer}
-          className="w-full sm:w-auto bg-amber-500 text-white font-bold text-lg sm:text-xl py-4 px-8 rounded-2xl shadow-lg hover:bg-amber-600 active:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all"
+          className="w-full sm:w-auto rounded-2xl bg-amber-500 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:bg-amber-600"
         >
           Xem đáp án
         </button>
@@ -649,24 +482,18 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
 
     if (practiceState === 'answer') {
       return (
-        <div className="grid w-full gap-2 sm:grid-cols-3">
-          <button
-            onClick={() => handleRateCard('again')}
-            className="bg-rose-500 text-white font-bold text-base sm:text-lg py-4 px-4 rounded-2xl shadow-lg hover:bg-rose-600 active:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-300 transition-all"
-          >
-            Lặp lại ngay
-          </button>
+        <div className="grid w-full gap-2 sm:grid-cols-2">
           <button
             onClick={() => handleRateCard('hard')}
-            className="bg-amber-500 text-white font-bold text-base sm:text-lg py-4 px-4 rounded-2xl shadow-lg hover:bg-amber-600 active:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all"
+            className="rounded-2xl bg-amber-500 px-5 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-amber-600 sm:text-lg"
           >
-            Khó
+            Từ này khó
           </button>
           <button
             onClick={() => handleRateCard('easy')}
-            className="bg-emerald-500 text-white font-bold text-base sm:text-lg py-4 px-4 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
+            className="rounded-2xl bg-emerald-500 px-5 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-emerald-600 sm:text-lg"
           >
-            Dễ
+            Từ này dễ
           </button>
         </div>
       );
@@ -675,16 +502,17 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     return (
       <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
         <button
-          onClick={startRound}
-          className="bg-emerald-500 text-white font-bold text-base sm:text-lg py-4 px-8 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
+          onClick={() => startRound(reviewMode)}
+          className="rounded-2xl bg-emerald-500 px-8 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-emerald-600 sm:text-lg"
         >
-          Tiếp tục vòng mới
+          Vòng mới
         </button>
         <button
-          onClick={handleResetProgress}
-          className="bg-white text-emerald-700 font-bold text-base sm:text-lg py-4 px-8 rounded-2xl border border-emerald-200 shadow-sm hover:bg-emerald-100 transition-all"
+          onClick={() => selectMode(reviewMode === 'all' ? 'hard' : 'all')}
+          disabled={reviewMode === 'all' && hardCount === 0}
+          className="rounded-2xl border border-emerald-200 bg-white px-8 py-4 text-base font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-emerald-300 sm:text-lg"
         >
-          Đặt lại tiến độ
+          {reviewMode === 'all' ? 'Ôn chữ khó' : 'Luyện tất cả'}
         </button>
       </div>
     );
@@ -693,7 +521,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
   return (
     <div className="min-h-[100svh] bg-[radial-gradient(circle_at_top,_#f7fef9,_#dff5e6_55%,_#d7efe0)] text-emerald-950 flex flex-col overflow-hidden font-sans">
       <header className="border-b border-emerald-200/80 bg-emerald-50/90 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={onBack}
@@ -702,11 +530,8 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
               ← Quay lại
             </button>
 
-            <div className="min-w-0 flex-1 text-center sm:text-left">
+            <div className="min-w-0 flex-1 text-center">
               <h1 className="truncate text-xl font-bold text-emerald-800 sm:text-2xl">Tập nhận diện chữ Hán</h1>
-              <p className="truncate text-xs text-emerald-600 sm:text-sm">
-                Nhìn chữ, nói pinyin + nghĩa, rồi tự chấm ngay ở thanh dưới.
-              </p>
             </div>
 
             <button
@@ -717,68 +542,71 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             </button>
           </div>
 
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => selectMode('all')}
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                reviewMode === 'all'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-white text-emerald-700 border border-emerald-200'
+              }`}
+            >
+              Luyện tất cả
+            </button>
+            <button
+              onClick={() => selectMode('hard')}
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                reviewMode === 'hard'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-white text-emerald-700 border border-emerald-200'
+              }`}
+            >
+              Ôn chữ khó
+            </button>
+          </div>
+
           <div className="mt-3 grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/80 px-3 py-2 text-center shadow-sm ring-1 ring-emerald-100">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Trong vòng</p>
-              <p className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{cardsLeftInRound}</p>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Trong vòng</div>
+              <div className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{cardsLeft}</div>
             </div>
             <div className="rounded-2xl bg-white/80 px-3 py-2 text-center shadow-sm ring-1 ring-emerald-100">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Đến hạn</p>
-              <p className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{dueCount}</p>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Chữ khó</div>
+              <div className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{hardCount}</div>
             </div>
             <div className="rounded-2xl bg-white/80 px-3 py-2 text-center shadow-sm ring-1 ring-emerald-100">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Đã vững</p>
-              <p className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{masteredCount}</p>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Đã xong</div>
+              <div className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{doneCount}</div>
             </div>
           </div>
         </div>
       </header>
 
       <main className="flex-1 min-h-0">
-        <div className="max-w-6xl mx-auto h-full px-4 py-4 sm:px-6 sm:py-5">
-          <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <section className="min-h-0 overflow-hidden rounded-[28px] border border-emerald-200 bg-white/90 shadow-[0_20px_60px_rgba(16,72,40,0.08)] backdrop-blur">
-              <div className="flex h-full min-h-0 flex-col p-5 sm:p-6">
-                <div className="flex items-center justify-between gap-3 border-b border-emerald-100 pb-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-500">
-                      {practiceState === 'idle'
-                        ? 'Adaptive Deck'
-                        : practiceState === 'prompt'
-                          ? 'Prompt'
-                          : practiceState === 'answer'
-                            ? 'Answer'
-                            : 'Summary'}
-                    </p>
-                    <p className="mt-1 text-sm text-emerald-700">
-                      {practiceState === 'round_complete'
-                        ? 'Kết quả vòng vừa xong'
-                        : `Đã xử lý ${sessionStats.reviewed} lượt trong phiên này`}
-                    </p>
+        <div className="mx-auto flex h-full max-w-4xl px-4 py-4 sm:px-6 sm:py-5">
+          <section className="min-h-0 w-full overflow-hidden rounded-[28px] border border-emerald-200 bg-white/92 shadow-[0_20px_60px_rgba(16,72,40,0.08)] backdrop-blur">
+            <div className="flex h-full min-h-0 flex-col p-5 sm:p-6">
+              <div className="flex items-center justify-between border-b border-emerald-100 pb-4">
+                <div className="text-sm font-semibold text-emerald-700">
+                  {reviewMode === 'all' ? 'Tất cả' : 'Chữ khó'}
+                </div>
+                {currentProgress && (
+                  <div className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    {currentProgress.seenCount} lần
                   </div>
-
-                  {currentProgress && practiceState !== 'round_complete' && practiceState !== 'idle' && (
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      {getBoxLabel(currentProgress.box)}
-                    </span>
-                  )}
-                </div>
-
-                <div className="min-h-0 flex-1 overflow-y-auto pt-5 pr-1">
-                  {renderContent()}
-                </div>
+                )}
               </div>
-            </section>
 
-            <aside className="hidden min-h-0 flex-col gap-4 lg:flex">
-              {renderCoachPanel()}
-            </aside>
-          </div>
+              <div className="min-h-0 flex-1 overflow-y-auto pt-5">
+                {renderContent()}
+              </div>
+            </div>
+          </section>
         </div>
       </main>
 
       <footer className="border-t border-emerald-200/80 bg-white/90 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
           {renderFooterActions()}
         </div>
       </footer>

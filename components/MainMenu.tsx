@@ -19,10 +19,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ onSelectCharacterRecognition, onSel
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-sky-800 sm:text-5xl lg:text-6xl">
             Ứng dụng luyện tập
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm text-sky-700 sm:text-base">
-            Giao diện được tối ưu cho điện thoại trước, nhưng vẫn mở rộng gọn gàng trên desktop. Chọn
-            chế độ học để bắt đầu ngay.
-          </p>
         </header>
 
         <main className="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2">
@@ -30,13 +26,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ onSelectCharacterRecognition, onSel
             onClick={onSelectCharacterRecognition}
             className="group rounded-[28px] bg-white/90 p-6 text-left shadow-[0_20px_50px_rgba(20,80,120,0.12)] ring-1 ring-sky-100 transition-all hover:-translate-y-1 hover:bg-white"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">Adaptive Review</p>
             <h2 className="mt-3 text-2xl font-bold text-sky-900 sm:text-3xl">Tập nhận diện chữ Hán</h2>
-            <p className="mt-3 text-sm leading-6 text-sky-700">
-              Lật từng thẻ, tự đọc pinyin + nghĩa, rồi chấm để chữ yếu quay lại sớm hơn.
-            </p>
-            <div className="mt-6 flex items-center justify-between text-sm font-semibold text-sky-700">
-              <span>Chế độ mobile-first</span>
+            <div className="mt-6 flex items-center justify-end text-sm font-semibold text-sky-700">
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </div>
           </button>
@@ -45,13 +36,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ onSelectCharacterRecognition, onSel
             onClick={onSelectSpeaking}
             className="group rounded-[28px] bg-sky-900 p-6 text-left shadow-[0_20px_50px_rgba(14,54,92,0.2)] transition-all hover:-translate-y-1 hover:bg-sky-800"
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200">Quick Prompt</p>
             <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">Tập nói</h2>
-            <p className="mt-3 text-sm leading-6 text-sky-100">
-              Chọn nhanh một câu hỏi ngẫu nhiên để luyện nói trực tiếp trên điện thoại hoặc máy tính.
-            </p>
-            <div className="mt-6 flex items-center justify-between text-sm font-semibold text-sky-100">
-              <span>Giao diện gọn một màn hình</span>
+            <div className="mt-6 flex items-center justify-end text-sm font-semibold text-sky-100">
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </div>
           </button>

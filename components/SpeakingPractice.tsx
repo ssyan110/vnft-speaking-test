@@ -70,28 +70,16 @@ const SpeakingPractice: React.FC<SpeakingPracticeProps> = ({ onBack }) => {
 
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-xl font-bold text-sky-800 sm:text-2xl">VNFT Speaking Test</h1>
-              <p className="truncate text-xs text-sky-600 sm:text-sm">
-                Chọn nhanh một câu hỏi ngẫu nhiên trong một màn hình gọn.
-              </p>
             </div>
           </div>
         </div>
       </header>
 
       <main className="flex-1 min-h-0">
-        <div className="mx-auto grid h-full max-w-6xl gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="mx-auto grid h-full max-w-4xl gap-4 px-4 py-4 sm:px-6 sm:py-5">
           <section className="min-h-0 overflow-hidden rounded-[28px] border border-sky-200 bg-white/90 p-5 shadow-[0_20px_60px_rgba(20,80,120,0.08)] backdrop-blur sm:p-6">
             <div className="flex h-full min-h-0 flex-col">
-              <div className="border-b border-sky-100 pb-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">
-                  Random speaking prompt
-                </p>
-                <p className="mt-1 text-sm text-sky-700">
-                  Nhấn nút bên dưới để chọn một câu hỏi mới cho phần luyện nói.
-                </p>
-              </div>
-
-              <div className="min-h-0 flex-1 pt-5">
+              <div className="min-h-0 flex-1">
                 <QuestionDisplay
                   isShuffling={isShuffling}
                   shufflingQuestion={shufflingQuestion}
@@ -100,24 +88,6 @@ const SpeakingPractice: React.FC<SpeakingPracticeProps> = ({ onBack }) => {
               </div>
             </div>
           </section>
-
-          <aside className="hidden lg:flex lg:flex-col lg:gap-4">
-            <div className="rounded-2xl border border-sky-200 bg-white p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-sky-500">Cách dùng</p>
-              <div className="mt-3 space-y-3 text-sm text-sky-800">
-                <p>1 câu hỏi cho mỗi lượt luyện.</p>
-                <p>Đọc pinyin, rồi nói phần tiếng Trung hoàn chỉnh.</p>
-                <p>Nếu chưa vừa ý, bấm lại để lấy câu mới ngay.</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-sky-500">Mẹo mobile</p>
-              <p className="mt-3 text-sm text-sky-800">
-                Nút hành động luôn nằm dưới cùng để không phải cuộn xuống khi dùng điện thoại.
-              </p>
-            </div>
-          </aside>
         </div>
       </main>
 

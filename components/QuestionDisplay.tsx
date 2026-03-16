@@ -19,19 +19,12 @@ const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
       <div className="flex h-full flex-col items-center justify-center text-center">
         {!currentQuestion && (
           <>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">Ready</p>
-            <h2 className="mt-4 text-2xl font-bold text-sky-800 sm:text-3xl">Chúc bạn may mắn</h2>
-            <p className="mt-3 max-w-md text-sm text-sky-700 sm:text-base">
-              Chọn một câu hỏi bất kỳ để bắt đầu phần luyện nói.
-            </p>
+            <h2 className="text-2xl font-bold text-sky-800 sm:text-3xl">Sẵn sàng</h2>
           </>
         )}
 
         {currentQuestion && (
           <div className={`w-full ${isShuffling ? 'animate-pulse' : ''}`}>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">
-              {isShuffling ? 'Đang chọn...' : 'Câu hỏi đã chọn'}
-            </p>
             <p className="mt-6 text-2xl font-bold text-sky-700 sm:text-3xl lg:text-4xl">
               {currentQuestion.pinyin}
             </p>
