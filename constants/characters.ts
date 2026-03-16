@@ -421,7 +421,7 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     "character": "亡",
     "pinyin": "wáng",
     "hanViet": "vong",
-    "meaning": "mất, chết, diệt vong",
+    "meaning": "mất, chết, vong",
     "radical": "亠 (tóu) – bộ Đầu",
     "characterType": "Chỉ sự"
   },
