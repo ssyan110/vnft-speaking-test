@@ -199,12 +199,15 @@ const getMasteredCount = (progressMap: ProgressMap) =>
     return progress ? progress.box >= MAX_BOX : false;
   }).length;
 
+const getBoxLabel = (box: number) => (box === 0 ? 'Mới / Yếu' : `Hộp ${box}`);
+
 const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) => {
   const [practiceState, setPracticeState] = useState<PracticeState>('idle');
   const [roundQueue, setRoundQueue] = useState<ChineseCharacter[]>([]);
   const [progressMap, setProgressMap] = useState<ProgressMap>(() => loadProgress());
   const [sessionStats, setSessionStats] = useState<PracticeSessionStats>(() => createInitialStats());
   const [roundStruggles, setRoundStruggles] = useState<RoundStruggleMap>({});
+  const [showExtraInfo, setShowExtraInfo] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -220,10 +223,14 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
   }, [progressMap]);
 
   const currentCard = roundQueue[0] ?? null;
+  const currentProgress = currentCard ? progressMap[currentCard.character] ?? createProgressRecord(currentCard.character) : null;
   const now = Date.now();
   const dueCount = getDueCount(progressMap, now);
   const masteredCount = getMasteredCount(progressMap);
+  const discoveredCount = Object.keys(progressMap).length;
   const hasUnseenCards = CHINESE_CHARACTERS.some(({ character }) => !progressMap[character]);
+  const cardsLeftInRound = practiceState === 'round_complete' ? 0 : roundQueue.length;
+  const hasAvailableCards = dueCount > 0 || hasUnseenCards;
   const hardestCards = Object.entries(roundStruggles)
     .map(([character, struggles]) => ({
       card: CHARACTER_LOOKUP[character],
@@ -239,11 +246,13 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     setRoundQueue(nextQueue);
     setSessionStats(createInitialStats());
     setRoundStruggles({});
+    setShowExtraInfo(false);
     setPracticeState(nextQueue.length > 0 ? 'prompt' : 'round_complete');
   };
 
   const handleShowAnswer = () => {
     if (practiceState === 'prompt') {
+      setShowExtraInfo(false);
       setPracticeState('answer');
     }
   };
@@ -254,8 +263,8 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     }
 
     const reviewedAt = Date.now();
-    const currentProgress = progressMap[currentCard.character] ?? createProgressRecord(currentCard.character);
-    const updatedProgress = getUpdatedProgress(currentProgress, rating, reviewedAt);
+    const currentCardProgress = progressMap[currentCard.character] ?? createProgressRecord(currentCard.character);
+    const updatedProgress = getUpdatedProgress(currentCardProgress, rating, reviewedAt);
     const nextProgressMap = {
       ...progressMap,
       [currentCard.character]: updatedProgress,
@@ -264,15 +273,15 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     setProgressMap(nextProgressMap);
 
     const masteredIncrement =
-      rating === 'easy' && currentProgress.box < MAX_BOX && updatedProgress.box === MAX_BOX ? 1 : 0;
+      rating === 'easy' && currentCardProgress.box < MAX_BOX && updatedProgress.box === MAX_BOX ? 1 : 0;
 
-    setSessionStats({
-      reviewed: sessionStats.reviewed + 1,
-      again: sessionStats.again + (rating === 'again' ? 1 : 0),
-      hard: sessionStats.hard + (rating === 'hard' ? 1 : 0),
-      easy: sessionStats.easy + (rating === 'easy' ? 1 : 0),
-      masteredThisRound: sessionStats.masteredThisRound + masteredIncrement,
-    });
+    setSessionStats((previousStats) => ({
+      reviewed: previousStats.reviewed + 1,
+      again: previousStats.again + (rating === 'again' ? 1 : 0),
+      hard: previousStats.hard + (rating === 'hard' ? 1 : 0),
+      easy: previousStats.easy + (rating === 'easy' ? 1 : 0),
+      masteredThisRound: previousStats.masteredThisRound + masteredIncrement,
+    }));
 
     if (rating !== 'easy') {
       const currentStruggles = roundStruggles[currentCard.character] ?? { again: 0, hard: 0 };
@@ -294,6 +303,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
           : remainingQueue;
 
     setRoundQueue(nextQueue);
+    setShowExtraInfo(false);
     setPracticeState(nextQueue.length > 0 ? 'prompt' : 'round_complete');
   };
 
@@ -311,258 +321,467 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     setRoundQueue([]);
     setSessionStats(createInitialStats());
     setRoundStruggles({});
+    setShowExtraInfo(false);
     setPracticeState('idle');
   };
 
-  const cardsLeftInRound = practiceState === 'round_complete' ? 0 : roundQueue.length;
-  const hasAvailableCards = dueCount > 0 || hasUnseenCards;
-
-  return (
-    <div className="min-h-screen bg-emerald-50 text-emerald-900 flex flex-col p-4 sm:p-8 font-sans">
-      <header className="w-full max-w-5xl mx-auto">
-        <button
-          onClick={onBack}
-          className="mb-4 text-emerald-600 hover:text-emerald-700 font-semibold text-lg flex items-center gap-2"
-        >
-          ← Quay lại
-        </button>
-
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-emerald-700 tracking-tight">
-              Tập nhận diện chữ Hán
-            </h1>
-            <p className="text-lg text-emerald-600 mt-2 max-w-2xl">
-              Nhìn chữ, đọc pinyin và nói nghĩa trước khi xem đáp án. Chữ khó sẽ quay lại sớm hơn để
-              tăng ghi nhớ.
+  const renderContent = () => {
+    if (practiceState === 'idle') {
+      return (
+        <div className="h-full flex flex-col justify-center text-center gap-6">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">
+              Mobile-first review
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-emerald-900">Một thẻ, một quyết định</h2>
+            <p className="text-sm sm:text-base text-emerald-700 max-w-xl mx-auto">
+              Màn hình đã được rút gọn để học sinh không phải cuộn trang. Nhìn chữ, nói pinyin + nghĩa,
+              rồi chấm ngay để hệ thống lặp lại chữ còn yếu.
             </p>
           </div>
 
-          <button
-            onClick={handleResetProgress}
-            className="self-start lg:self-auto bg-white text-emerald-700 font-semibold py-3 px-5 rounded-xl border border-emerald-200 shadow-sm hover:bg-emerald-100 transition-colors"
-          >
-            Đặt lại tiến độ
-          </button>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl bg-emerald-50 p-4 text-left">
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bước 1</p>
+              <p className="mt-2 font-semibold text-emerald-900">Nhìn chữ</p>
+              <p className="mt-1 text-sm text-emerald-700">Tập trung vào mặt chữ trước khi lật.</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-4 text-left">
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bước 2</p>
+              <p className="mt-2 font-semibold text-emerald-900">Tự nói</p>
+              <p className="mt-1 text-sm text-emerald-700">Đọc pinyin và nói nghĩa thành tiếng.</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-4 text-left">
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bước 3</p>
+              <p className="mt-2 font-semibold text-emerald-900">Tự chấm</p>
+              <p className="mt-1 text-sm text-emerald-700">Chữ khó quay lại nhanh hơn trong vòng học.</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-emerald-600">
+            Đã mở: {discoveredCount}/{CHINESE_CHARACTERS.length} chữ
+          </p>
+        </div>
+      );
+    }
+
+    if (practiceState === 'prompt' && currentCard) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center text-center gap-5">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">
+              Tự trả lời trước khi lật
+            </p>
+            <p className="text-sm sm:text-base text-emerald-700">
+              Đọc <span className="font-semibold text-emerald-900">pinyin + nghĩa</span> của chữ này.
+            </p>
+          </div>
+
+          <div className="text-[6rem] leading-none font-bold text-emerald-700 sm:text-[8rem] lg:text-[10rem]">
+            {currentCard.character}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              {getBoxLabel(currentProgress?.box ?? 0)}
+            </span>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+              Đã gặp {currentProgress?.seenCount ?? 0} lần
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    if (practiceState === 'answer' && currentCard) {
+      return (
+        <div className="h-full flex flex-col gap-4 sm:gap-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">Đáp án</p>
+              <div className="mt-3 text-5xl font-bold text-emerald-700 sm:text-6xl">{currentCard.character}</div>
+            </div>
+
+            <button
+              onClick={() => setShowExtraInfo((previous) => !previous)}
+              className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              {showExtraInfo ? 'Ẩn chi tiết' : 'Thông tin thêm'}
+            </button>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-emerald-50 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Pinyin</p>
+              <p className="mt-2 text-3xl font-bold text-emerald-900">{currentCard.pinyin}</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-4 sm:p-5">
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Nghĩa</p>
+              <p className="mt-2 text-xl font-semibold text-emerald-900 sm:text-2xl">{currentCard.meaning}</p>
+            </div>
+          </div>
+
+          {showExtraInfo && (
+            <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Hán Việt</p>
+                  <p className="mt-1 font-semibold text-emerald-900">{currentCard.hanViet}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Bộ thủ</p>
+                  <p className="mt-1 text-sm text-emerald-700">{currentCard.radical}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Loại chữ</p>
+                  <p className="mt-1 text-sm font-semibold text-emerald-700">{currentCard.characterType}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-2xl bg-emerald-100/70 px-4 py-3 text-sm text-emerald-800">
+            Tự chấm ngay bên dưới. Chọn Lặp lại ngay nếu muốn đưa chữ này quay lại rất sớm trong vòng học.
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-full flex flex-col gap-5">
+        <div className="text-center sm:text-left">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-500">
+            Round complete
+          </p>
+          <h2 className="mt-3 text-3xl font-bold text-emerald-900 sm:text-4xl">Kết thúc vòng học</h2>
+          <p className="mt-3 text-sm sm:text-base text-emerald-700">
+            {sessionStats.reviewed > 0
+              ? `Bạn đã xử lý ${sessionStats.reviewed} lượt trong vòng này.`
+              : hasAvailableCards
+                ? 'Vòng hiện tại chưa có lượt chấm điểm. Bắt đầu lại để lấy bộ thẻ mới.'
+                : 'Hiện chưa có chữ mới hoặc chữ đến hạn trong trình duyệt này.'}
+          </p>
         </div>
 
-        <div className="grid gap-3 mt-6 sm:grid-cols-3">
-          <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.2em] text-emerald-500">Trong vòng</p>
-            <p className="text-3xl font-bold text-emerald-800 mt-2">{cardsLeftInRound}</p>
-            <p className="text-sm text-emerald-600 mt-1">Mỗi vòng tối đa {ROUND_SIZE} chữ</p>
+        <div className="grid gap-3 grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-2xl bg-emerald-50 p-4 text-center">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Reviewed</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-800">{sessionStats.reviewed}</p>
+          </div>
+          <div className="rounded-2xl bg-rose-50 p-4 text-center">
+            <p className="text-xs uppercase tracking-[0.2em] text-rose-500">Again</p>
+            <p className="mt-2 text-2xl font-bold text-rose-700">{sessionStats.again}</p>
+          </div>
+          <div className="rounded-2xl bg-amber-50 p-4 text-center">
+            <p className="text-xs uppercase tracking-[0.2em] text-amber-500">Hard</p>
+            <p className="mt-2 text-2xl font-bold text-amber-700">{sessionStats.hard}</p>
+          </div>
+          <div className="rounded-2xl bg-emerald-100 p-4 text-center">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-600">Easy</p>
+            <p className="mt-2 text-2xl font-bold text-emerald-700">{sessionStats.easy}</p>
+          </div>
+          <div className="rounded-2xl bg-sky-50 p-4 text-center">
+            <p className="text-xs uppercase tracking-[0.2em] text-sky-500">Mastered</p>
+            <p className="mt-2 text-2xl font-bold text-sky-700">{sessionStats.masteredThisRound}</p>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+          <h3 className="text-lg font-bold text-emerald-900">Chữ cần ôn thêm</h3>
+          {hardestCards.length > 0 ? (
+            <div className="mt-3 space-y-3">
+              {hardestCards.map(({ card, again, hard, score }) => (
+                <div
+                  key={card.character}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 border border-emerald-200"
+                >
+                  <div>
+                    <p className="text-3xl font-bold text-emerald-800">{card.character}</p>
+                    <p className="text-sm text-emerald-700">
+                      {card.pinyin} • {card.meaning}
+                    </p>
+                  </div>
+                  <div className="text-right text-xs sm:text-sm text-emerald-700">
+                    <p>Điểm khó: {score}</p>
+                    <p>Again: {again}</p>
+                    <p>Hard: {hard}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-emerald-700">
+              Không có chữ nào bị đánh dấu Again hoặc Hard trong vòng này.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCoachPanel = () => {
+    if (practiceState === 'round_complete') {
+      return (
+        <>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Tiếp theo</p>
+            <p className="mt-2 text-lg font-bold text-emerald-900">Bắt đầu vòng mới</p>
+            <p className="mt-2 text-sm text-emerald-700">
+              Hệ thống sẽ ưu tiên chữ đến hạn trước, sau đó thêm chữ mới nếu còn chỗ trong vòng.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Tiến độ</p>
+            <div className="mt-3 space-y-3 text-sm text-emerald-800">
+              <div className="flex items-center justify-between">
+                <span>Đã vững</span>
+                <span className="font-semibold">{masteredCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Đến hạn</span>
+                <span className="font-semibold">{dueCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Đã mở</span>
+                <span className="font-semibold">{discoveredCount}</span>
+              </div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (practiceState === 'answer' && currentCard && currentProgress) {
+      return (
+        <>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Thẻ hiện tại</p>
+            <p className="mt-2 text-4xl font-bold text-emerald-800">{currentCard.character}</p>
+            <p className="mt-1 text-sm text-emerald-700">{currentCard.pinyin}</p>
+            <div className="mt-4 space-y-3 text-sm text-emerald-800">
+              <div className="flex items-center justify-between">
+                <span>Vị trí</span>
+                <span className="font-semibold">{getBoxLabel(currentProgress.box)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Đã gặp</span>
+                <span className="font-semibold">{currentProgress.seenCount} lần</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Lapses</span>
+                <span className="font-semibold">{currentProgress.lapses}</span>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Mẹo chấm</p>
+            <div className="mt-3 space-y-3 text-sm text-emerald-800">
+              <p><span className="font-semibold">Lặp lại ngay:</span> quên hoặc đoán sai.</p>
+              <p><span className="font-semibold">Khó:</span> nhớ được nhưng chậm hoặc thiếu chắc chắn.</p>
+              <p><span className="font-semibold">Dễ:</span> gọi ra nhanh, đúng pinyin và nghĩa.</p>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (practiceState === 'prompt' && currentCard && currentProgress) {
+      return (
+        <>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Trong vòng</p>
+            <p className="mt-2 text-4xl font-bold text-emerald-800">{cardsLeftInRound}</p>
+            <p className="mt-1 text-sm text-emerald-700">Còn lại trước khi kết thúc vòng hiện tại.</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Gợi ý</p>
+            <div className="mt-3 space-y-3 text-sm text-emerald-800">
+              <p>Nhìn chữ vài giây trước khi lật.</p>
+              <p>Ưu tiên gọi đúng pinyin rồi mới nói nghĩa.</p>
+              <p>Đừng bỏ qua chữ khó, vì nó sẽ quay lại nhanh hơn.</p>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Deck</p>
+          <p className="mt-2 text-4xl font-bold text-emerald-800">{CHINESE_CHARACTERS.length}</p>
+          <p className="mt-1 text-sm text-emerald-700">Tổng số chữ hiện có trong bộ luyện tập.</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-emerald-500">Nguyên tắc</p>
+          <div className="mt-3 space-y-3 text-sm text-emerald-800">
+            <p>Tập theo vòng ngắn để không bị quá tải trên điện thoại.</p>
+            <p>Thanh hành động luôn nằm dưới cùng, không cần cuộn để bấm.</p>
+            <p>Desktop giữ thêm bảng hỗ trợ bên phải để theo dõi tiến độ.</p>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderFooterActions = () => {
+    if (practiceState === 'idle') {
+      return (
+        <button
+          onClick={startRound}
+          className="w-full sm:w-auto bg-emerald-500 text-white font-bold text-lg sm:text-xl py-4 px-8 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
+        >
+          Bắt đầu vòng học
+        </button>
+      );
+    }
+
+    if (practiceState === 'prompt') {
+      return (
+        <button
+          onClick={handleShowAnswer}
+          className="w-full sm:w-auto bg-amber-500 text-white font-bold text-lg sm:text-xl py-4 px-8 rounded-2xl shadow-lg hover:bg-amber-600 active:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all"
+        >
+          Xem đáp án
+        </button>
+      );
+    }
+
+    if (practiceState === 'answer') {
+      return (
+        <div className="grid w-full gap-2 sm:grid-cols-3">
+          <button
+            onClick={() => handleRateCard('again')}
+            className="bg-rose-500 text-white font-bold text-base sm:text-lg py-4 px-4 rounded-2xl shadow-lg hover:bg-rose-600 active:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-300 transition-all"
+          >
+            Lặp lại ngay
+          </button>
+          <button
+            onClick={() => handleRateCard('hard')}
+            className="bg-amber-500 text-white font-bold text-base sm:text-lg py-4 px-4 rounded-2xl shadow-lg hover:bg-amber-600 active:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all"
+          >
+            Khó
+          </button>
+          <button
+            onClick={() => handleRateCard('easy')}
+            className="bg-emerald-500 text-white font-bold text-base sm:text-lg py-4 px-4 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
+          >
+            Dễ
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
+        <button
+          onClick={startRound}
+          className="bg-emerald-500 text-white font-bold text-base sm:text-lg py-4 px-8 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
+        >
+          Tiếp tục vòng mới
+        </button>
+        <button
+          onClick={handleResetProgress}
+          className="bg-white text-emerald-700 font-bold text-base sm:text-lg py-4 px-8 rounded-2xl border border-emerald-200 shadow-sm hover:bg-emerald-100 transition-all"
+        >
+          Đặt lại tiến độ
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-[100svh] bg-[radial-gradient(circle_at_top,_#f7fef9,_#dff5e6_55%,_#d7efe0)] text-emerald-950 flex flex-col overflow-hidden font-sans">
+      <header className="border-b border-emerald-200/80 bg-emerald-50/90 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={onBack}
+              className="shrink-0 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              ← Quay lại
+            </button>
+
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <h1 className="truncate text-xl font-bold text-emerald-800 sm:text-2xl">Tập nhận diện chữ Hán</h1>
+              <p className="truncate text-xs text-emerald-600 sm:text-sm">
+                Nhìn chữ, nói pinyin + nghĩa, rồi tự chấm ngay ở thanh dưới.
+              </p>
+            </div>
+
+            <button
+              onClick={handleResetProgress}
+              className="shrink-0 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              Reset
+            </button>
           </div>
 
-          <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.2em] text-emerald-500">Đến hạn</p>
-            <p className="text-3xl font-bold text-emerald-800 mt-2">{dueCount}</p>
-            <p className="text-sm text-emerald-600 mt-1">Ưu tiên các chữ yếu trước</p>
-          </div>
-
-          <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-sm">
-            <p className="text-sm uppercase tracking-[0.2em] text-emerald-500">Đã vững</p>
-            <p className="text-3xl font-bold text-emerald-800 mt-2">{masteredCount}</p>
-            <p className="text-sm text-emerald-600 mt-1">Hộp 4 trên tổng {CHINESE_CHARACTERS.length} chữ</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-white/80 px-3 py-2 text-center shadow-sm ring-1 ring-emerald-100">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Trong vòng</p>
+              <p className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{cardsLeftInRound}</p>
+            </div>
+            <div className="rounded-2xl bg-white/80 px-3 py-2 text-center shadow-sm ring-1 ring-emerald-100">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Đến hạn</p>
+              <p className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{dueCount}</p>
+            </div>
+            <div className="rounded-2xl bg-white/80 px-3 py-2 text-center shadow-sm ring-1 ring-emerald-100">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Đã vững</p>
+              <p className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{masteredCount}</p>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-grow w-full max-w-5xl mx-auto flex items-center justify-center py-8">
-        {practiceState === 'idle' && (
-          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl border border-emerald-200 p-8 sm:p-12 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-500">
-              Active Recall
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-emerald-800 mt-4">Bắt đầu một vòng luyện</h2>
-            <p className="text-lg text-emerald-600 mt-4 max-w-2xl mx-auto">
-              Mỗi lượt hiển thị một chữ Hán. Học sinh tự gọi pinyin và nghĩa, sau đó tự chấm để hệ
-              thống lặp lại các chữ còn yếu.
-            </p>
+      <main className="flex-1 min-h-0">
+        <div className="max-w-6xl mx-auto h-full px-4 py-4 sm:px-6 sm:py-5">
+          <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+            <section className="min-h-0 overflow-hidden rounded-[28px] border border-emerald-200 bg-white/90 shadow-[0_20px_60px_rgba(16,72,40,0.08)] backdrop-blur">
+              <div className="flex h-full min-h-0 flex-col p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-3 border-b border-emerald-100 pb-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-500">
+                      {practiceState === 'idle'
+                        ? 'Adaptive Deck'
+                        : practiceState === 'prompt'
+                          ? 'Prompt'
+                          : practiceState === 'answer'
+                            ? 'Answer'
+                            : 'Summary'}
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-700">
+                      {practiceState === 'round_complete'
+                        ? 'Kết quả vòng vừa xong'
+                        : `Đã xử lý ${sessionStats.reviewed} lượt trong phiên này`}
+                    </p>
+                  </div>
 
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <button
-                onClick={startRound}
-                className="bg-emerald-500 text-white font-bold text-2xl py-4 px-10 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
-              >
-                Bắt đầu vòng học
-              </button>
-              <p className="text-sm text-emerald-600">
-                Đã mở: {Object.keys(progressMap).length}/{CHINESE_CHARACTERS.length} chữ
-              </p>
-            </div>
-          </div>
-        )}
-
-        {practiceState === 'prompt' && currentCard && (
-          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl border border-emerald-200 p-8 sm:p-12 text-center transition-all duration-200">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-500">
-              Tự trả lời trước khi lật
-            </p>
-            <p className="text-lg text-emerald-600 mt-4">Đọc pinyin và nói nghĩa của chữ này.</p>
-
-            <div className="text-[7rem] sm:text-[9rem] font-bold text-emerald-700 leading-none mt-8">
-              {currentCard.character}
-            </div>
-
-            <p className="mt-6 text-sm sm:text-base text-emerald-600">
-              Mục tiêu nhớ: <span className="font-semibold text-emerald-800">pinyin + nghĩa</span>
-            </p>
-
-            <button
-              onClick={handleShowAnswer}
-              className="mt-8 bg-amber-500 text-white font-bold text-2xl py-4 px-10 rounded-2xl shadow-lg hover:bg-amber-600 active:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all"
-            >
-              Xem đáp án
-            </button>
-          </div>
-        )}
-
-        {practiceState === 'answer' && currentCard && (
-          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl border border-emerald-200 p-8 sm:p-12 transition-all duration-200">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-500">
-                Tự chấm sau khi đã trả lời
-              </p>
-              <div className="text-6xl sm:text-7xl font-bold text-emerald-700 mt-5">{currentCard.character}</div>
-            </div>
-
-            <div className="mt-8 bg-emerald-50 rounded-2xl p-6 space-y-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-emerald-500">Pinyin</p>
-                <p className="text-3xl font-bold text-emerald-900 mt-1">{currentCard.pinyin}</p>
-              </div>
-
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-emerald-500">Nghĩa</p>
-                <p className="text-2xl font-semibold text-emerald-900 mt-1">{currentCard.meaning}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-emerald-200 p-5">
-              <p className="text-sm uppercase tracking-[0.2em] text-emerald-500">Thông tin thêm</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3 text-sm sm:text-base">
-                <div>
-                  <p className="font-semibold text-emerald-800">Hán Việt</p>
-                  <p className="text-emerald-700">{currentCard.hanViet}</p>
+                  {currentProgress && practiceState !== 'round_complete' && practiceState !== 'idle' && (
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      {getBoxLabel(currentProgress.box)}
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <p className="font-semibold text-emerald-800">Bộ thủ</p>
-                  <p className="text-emerald-700">{currentCard.radical}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-emerald-800">Loại chữ</p>
-                  <p className="text-emerald-700">{currentCard.characterType}</p>
+
+                <div className="min-h-0 flex-1 overflow-y-auto pt-5 pr-1">
+                  {renderContent()}
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <button
-                onClick={() => handleRateCard('again')}
-                className="bg-rose-500 text-white font-bold text-xl py-4 px-6 rounded-2xl shadow-lg hover:bg-rose-600 active:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-300 transition-all"
-              >
-                Lặp lại ngay
-              </button>
-              <button
-                onClick={() => handleRateCard('hard')}
-                className="bg-amber-500 text-white font-bold text-xl py-4 px-6 rounded-2xl shadow-lg hover:bg-amber-600 active:bg-amber-700 focus:outline-none focus:ring-4 focus:ring-amber-300 transition-all"
-              >
-                Khó
-              </button>
-              <button
-                onClick={() => handleRateCard('easy')}
-                className="bg-emerald-500 text-white font-bold text-xl py-4 px-6 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
-              >
-                Dễ
-              </button>
-            </div>
+            <aside className="hidden min-h-0 flex-col gap-4 lg:flex">
+              {renderCoachPanel()}
+            </aside>
           </div>
-        )}
-
-        {practiceState === 'round_complete' && (
-          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-xl border border-emerald-200 p-8 sm:p-12">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-500">
-                Round Complete
-              </p>
-              <h2 className="text-3xl sm:text-4xl font-bold text-emerald-800 mt-4">Kết thúc vòng học</h2>
-              <p className="text-lg text-emerald-600 mt-4">
-                {sessionStats.reviewed > 0
-                  ? `Bạn đã xử lý ${sessionStats.reviewed} lượt trong vòng này.`
-                  : hasAvailableCards
-                    ? 'Vòng hiện tại chưa có lượt chấm điểm. Hãy bắt đầu lại để lấy bộ thẻ mới.'
-                    : 'Hiện chưa có chữ mới hoặc chữ đến hạn trong trình duyệt này.'}
-              </p>
-            </div>
-
-            <div className="grid gap-3 mt-8 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="rounded-2xl bg-emerald-50 p-4 text-center">
-                <p className="text-sm text-emerald-600">Reviewed</p>
-                <p className="text-2xl font-bold text-emerald-800 mt-1">{sessionStats.reviewed}</p>
-              </div>
-              <div className="rounded-2xl bg-rose-50 p-4 text-center">
-                <p className="text-sm text-rose-600">Again</p>
-                <p className="text-2xl font-bold text-rose-700 mt-1">{sessionStats.again}</p>
-              </div>
-              <div className="rounded-2xl bg-amber-50 p-4 text-center">
-                <p className="text-sm text-amber-600">Hard</p>
-                <p className="text-2xl font-bold text-amber-700 mt-1">{sessionStats.hard}</p>
-              </div>
-              <div className="rounded-2xl bg-emerald-100 p-4 text-center">
-                <p className="text-sm text-emerald-600">Easy</p>
-                <p className="text-2xl font-bold text-emerald-700 mt-1">{sessionStats.easy}</p>
-              </div>
-              <div className="rounded-2xl bg-sky-50 p-4 text-center">
-                <p className="text-sm text-sky-600">Mastered</p>
-                <p className="text-2xl font-bold text-sky-700 mt-1">{sessionStats.masteredThisRound}</p>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <h3 className="text-xl font-bold text-emerald-800">Chữ cần ôn thêm</h3>
-              {hardestCards.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {hardestCards.map(({ card, again, hard, score }) => (
-                    <div
-                      key={card.character}
-                      className="flex items-center justify-between rounded-2xl border border-emerald-200 p-4"
-                    >
-                      <div>
-                        <p className="text-3xl font-bold text-emerald-800">{card.character}</p>
-                        <p className="text-sm text-emerald-600">
-                          {card.pinyin} • {card.meaning}
-                        </p>
-                      </div>
-                      <div className="text-right text-sm text-emerald-700">
-                        <p>Điểm khó: {score}</p>
-                        <p>Again: {again}</p>
-                        <p>Hard: {hard}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-emerald-600">Không có chữ nào bị đánh dấu Again hoặc Hard trong vòng này.</p>
-              )}
-            </div>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <button
-                onClick={startRound}
-                className="bg-emerald-500 text-white font-bold text-xl py-4 px-8 rounded-2xl shadow-lg hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-all"
-              >
-                Tiếp tục vòng mới
-              </button>
-              <button
-                onClick={handleResetProgress}
-                className="bg-white text-emerald-700 font-bold text-xl py-4 px-8 rounded-2xl border border-emerald-200 shadow-sm hover:bg-emerald-100 transition-all"
-              >
-                Đặt lại tiến độ
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </main>
+
+      <footer className="border-t border-emerald-200/80 bg-white/90 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 py-3 sm:px-6 sm:py-4">
+          {renderFooterActions()}
+        </div>
+      </footer>
     </div>
   );
 };

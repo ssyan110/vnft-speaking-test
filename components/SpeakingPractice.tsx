@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { QUESTIONS } from '../constants/questions';
 import { Question } from '../types';
 import QuestionDisplay from './QuestionDisplay';
@@ -30,7 +30,9 @@ const SpeakingPractice: React.FC<SpeakingPracticeProps> = ({ onBack }) => {
   }, []);
 
   const startShuffle = useCallback(() => {
-    if (isShuffling) return;
+    if (isShuffling) {
+      return;
+    }
 
     setIsShuffling(true);
     setSelectedQuestion(null);
@@ -47,7 +49,7 @@ const SpeakingPractice: React.FC<SpeakingPracticeProps> = ({ onBack }) => {
       setShufflingQuestion(null);
     }, SHUFFLE_DURATION_MS);
   }, [isShuffling, stopShuffle]);
-  
+
   useEffect(() => {
     return () => {
       stopShuffle();
@@ -55,34 +57,80 @@ const SpeakingPractice: React.FC<SpeakingPracticeProps> = ({ onBack }) => {
   }, [stopShuffle]);
 
   return (
-    <div className="min-h-screen bg-sky-50 text-sky-900 flex flex-col items-center justify-between p-4 sm:p-8 font-sans">
-      <header className="w-full max-w-4xl text-center">
-        <button
-          onClick={onBack}
-          className="mb-4 text-sky-600 hover:text-sky-700 font-semibold text-lg flex items-center gap-2"
-        >
-          ← Quay lại
-        </button>
-        <h1 className="text-4xl sm:text-5xl font-bold text-sky-700 tracking-tight">VNFT Speaking Test</h1>
-        <p className="text-lg text-sky-600 mt-2">Nhấn nút để chọn ngẫu nhiên một câu hỏi</p>
+    <div className="min-h-[100svh] bg-[radial-gradient(circle_at_top,_#f5fbff,_#dfefff_55%,_#d4ebff)] text-sky-950 flex flex-col overflow-hidden font-sans">
+      <header className="border-b border-sky-200/80 bg-sky-50/90 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              className="shrink-0 rounded-full border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 hover:bg-sky-50 transition-colors"
+            >
+              ← Quay lại
+            </button>
+
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-xl font-bold text-sky-800 sm:text-2xl">VNFT Speaking Test</h1>
+              <p className="truncate text-xs text-sky-600 sm:text-sm">
+                Chọn nhanh một câu hỏi ngẫu nhiên trong một màn hình gọn.
+              </p>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <main className="flex-grow flex items-center justify-center w-full max-w-4xl my-8">
-        <QuestionDisplay 
-          isShuffling={isShuffling}
-          shufflingQuestion={shufflingQuestion}
-          selectedQuestion={selectedQuestion}
-        />
+      <main className="flex-1 min-h-0">
+        <div className="mx-auto grid h-full max-w-6xl gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <section className="min-h-0 overflow-hidden rounded-[28px] border border-sky-200 bg-white/90 p-5 shadow-[0_20px_60px_rgba(20,80,120,0.08)] backdrop-blur sm:p-6">
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="border-b border-sky-100 pb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">
+                  Random speaking prompt
+                </p>
+                <p className="mt-1 text-sm text-sky-700">
+                  Nhấn nút bên dưới để chọn một câu hỏi mới cho phần luyện nói.
+                </p>
+              </div>
+
+              <div className="min-h-0 flex-1 pt-5">
+                <QuestionDisplay
+                  isShuffling={isShuffling}
+                  shufflingQuestion={shufflingQuestion}
+                  selectedQuestion={selectedQuestion}
+                />
+              </div>
+            </div>
+          </section>
+
+          <aside className="hidden lg:flex lg:flex-col lg:gap-4">
+            <div className="rounded-2xl border border-sky-200 bg-white p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-sky-500">Cách dùng</p>
+              <div className="mt-3 space-y-3 text-sm text-sky-800">
+                <p>1 câu hỏi cho mỗi lượt luyện.</p>
+                <p>Đọc pinyin, rồi nói phần tiếng Trung hoàn chỉnh.</p>
+                <p>Nếu chưa vừa ý, bấm lại để lấy câu mới ngay.</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-sky-500">Mẹo mobile</p>
+              <p className="mt-3 text-sm text-sky-800">
+                Nút hành động luôn nằm dưới cùng để không phải cuộn xuống khi dùng điện thoại.
+              </p>
+            </div>
+          </aside>
+        </div>
       </main>
 
-      <footer className="w-full flex justify-center">
-        <button
-          onClick={startShuffle}
-          disabled={isShuffling}
-          className="bg-sky-500 text-white font-bold text-2xl py-4 px-12 rounded-lg shadow-lg hover:bg-sky-600 active:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-300 transition-all duration-300 ease-in-out disabled:bg-sky-300 disabled:cursor-not-allowed disabled:shadow-none transform hover:scale-105 active:scale-100"
-        >
-          {isShuffling ? 'ĐANG CHỌN...' : 'BẮT ĐẦU'}
-        </button>
+      <footer className="border-t border-sky-200/80 bg-white/90 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 sm:py-4">
+          <button
+            onClick={startShuffle}
+            disabled={isShuffling}
+            className="w-full sm:w-auto bg-sky-500 text-white font-bold text-lg sm:text-xl py-4 px-10 rounded-2xl shadow-lg hover:bg-sky-600 active:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-300 transition-all disabled:bg-sky-300 disabled:cursor-not-allowed disabled:shadow-none"
+          >
+            {isShuffling ? 'ĐANG CHỌN...' : 'CHỌN CÂU HỎI'}
+          </button>
+        </div>
       </footer>
     </div>
   );

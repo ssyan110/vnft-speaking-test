@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Question } from '../types';
 
@@ -8,78 +7,42 @@ interface QuestionDisplayProps {
   selectedQuestion: Question | null;
 }
 
-const QuestionDisplay: React.FC<QuestionDisplayProps> = ({ isShuffling, shufflingQuestion, selectedQuestion }) => {
-  const renderContent = () => {
-    if (isShuffling && shufflingQuestion) {
-      return (
-        <div className="text-center animate-pulse">
-          <p className="text-xl sm:text-2xl text-sky-600 mb-4">{shufflingQuestion.pinyin}</p>
-          <h2 className="text-3xl sm:text-4xl font-semibold text-sky-800">{shufflingQuestion.chinese}</h2>
-        </div>
-      );
-    }
+const QuestionDisplay: React.FC<QuestionDisplayProps> = ({
+  isShuffling,
+  shufflingQuestion,
+  selectedQuestion,
+}) => {
+  const currentQuestion = isShuffling ? shufflingQuestion : selectedQuestion;
 
-    if (selectedQuestion) {
-      return (
-        <div className="text-center animate-fade-in">
-          <p className="text-xl sm:text-2xl text-sky-600 mb-4">{selectedQuestion.pinyin}</p>
-          <h2 className="text-3xl sm:text-4xl font-semibold text-sky-800">{selectedQuestion.chinese}</h2>
-        </div>
-      );
-    }
-
-    return (
-      <div className="text-center">
-        <h2 className="text-2xl sm:text-3xl font-medium text-sky-500">Chúc bạn may mắn!</h2>
-      </div>
-    );
-  };
-  
   return (
-    <div className="w-full h-64 flex items-center justify-center bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-sky-200 p-6 overflow-hidden">
-      {renderContent()}
+    <div className="h-full min-h-[18rem] rounded-[24px] bg-sky-50/70 border border-sky-100 p-5 sm:min-h-[22rem] sm:p-8">
+      <div className="flex h-full flex-col items-center justify-center text-center">
+        {!currentQuestion && (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">Ready</p>
+            <h2 className="mt-4 text-2xl font-bold text-sky-800 sm:text-3xl">Chúc bạn may mắn</h2>
+            <p className="mt-3 max-w-md text-sm text-sky-700 sm:text-base">
+              Chọn một câu hỏi bất kỳ để bắt đầu phần luyện nói.
+            </p>
+          </>
+        )}
+
+        {currentQuestion && (
+          <div className={`w-full ${isShuffling ? 'animate-pulse' : ''}`}>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-500">
+              {isShuffling ? 'Đang chọn...' : 'Câu hỏi đã chọn'}
+            </p>
+            <p className="mt-6 text-2xl font-bold text-sky-700 sm:text-3xl lg:text-4xl">
+              {currentQuestion.pinyin}
+            </p>
+            <h2 className="mt-4 text-3xl font-semibold leading-tight text-sky-900 sm:text-4xl lg:text-5xl">
+              {currentQuestion.chinese}
+            </h2>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-// Add keyframes for a simple fade-in animation to tailwind config if possible, or define here if not.
-// For this self-contained example, we'll rely on browser defaults or assume a tailwind.config.js might add it.
-// A simple way to get a similar effect without config is with CSS. Let's add a style tag in index.html for it.
-// Or, even better, let's use tailwind classes that don't need config.
-// The component structure will be simplified and animations will be handled via standard Tailwind classes.
-
-const AnimatedQuestion: React.FC<{ question: Question }> = ({ question }) => (
-    <div className="text-center transition-opacity duration-100 ease-in-out">
-        <p className="text-xl sm:text-2xl text-sky-600 mb-4">{question.pinyin}</p>
-        <h2 className="text-3xl sm:text-4xl font-semibold text-sky-800">{question.chinese}</h2>
-    </div>
-);
-
-const FinalQuestion: React.FC<{ question: Question }> = ({ question }) => (
-     <div className="text-center">
-        <p className="text-xl sm:text-2xl text-sky-600 mb-4">{question.pinyin}</p>
-        <h2 className="text-3xl sm:text-4xl font-semibold text-sky-800">{question.chinese}</h2>
-    </div>
-);
-
-
-const QuestionDisplayWithKey: React.FC<QuestionDisplayProps> = ({ isShuffling, shufflingQuestion, selectedQuestion }) => {
-    return (
-        <div className="relative w-full h-64 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-sky-200 p-6 overflow-hidden">
-            <div className="transition-all duration-200 ease-in-out">
-                {isShuffling && shufflingQuestion && <AnimatedQuestion key={shufflingQuestion.pinyin} question={shufflingQuestion} />}
-                
-                {selectedQuestion && !isShuffling && <FinalQuestion key="final" question={selectedQuestion} />}
-
-                {!isShuffling && !selectedQuestion && (
-                    <div className="text-center">
-                        <h2 className="text-2xl sm:text-3xl font-medium text-sky-500">Chúc bạn may mắn!</h2>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-
-export default QuestionDisplayWithKey;
+export default QuestionDisplay;

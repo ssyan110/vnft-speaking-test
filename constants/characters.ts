@@ -183,7 +183,7 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     hanViet: 'lục',
     meaning: 'sáu',
     radical: '八 (bā) – bộ Bát',
-    characterType: 'Chỉ sự',
+    characterType: 'Tượng hình',
   },
   {
     character: '七',
@@ -455,6 +455,6 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     hanViet: 'tiểu',
     meaning: 'nhỏ, bé',
     radical: '小 (xiǎo) – bộ Tiểu',
-    characterType: 'Tượng hình',
+    characterType: 'Chỉ sự',
   },
 ];
