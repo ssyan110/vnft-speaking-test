@@ -275,9 +275,9 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
   },
   {
     character: '行',
-    pinyin: 'xíng',
+    pinyin: 'xíng/háng',
     hanViet: 'hành',
-    meaning: 'đi, được, OK',
+    meaning: 'đi, được, OK, hàng, tiệm',
     radical: '行 (xíng) – bộ Hành',
     characterType: 'Tượng hình',
   },
@@ -455,6 +455,46 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     hanViet: 'tiểu',
     meaning: 'nhỏ, bé',
     radical: '小 (xiǎo) – bộ Tiểu',
-    characterType: 'Chỉ sự',
+    characterType: 'Tượng hình',
   },
+  {
+    character: '回',
+    pinyin: 'huí',
+    hanViet: 'hồi',
+    meaning: 'quay lại, trở về',
+    radical: '囗 (wéi) – bộ Vi',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '校',
+    pinyin: 'xiào',
+    hanViet: 'hiệu',
+    meaning: 'trường, trường học',
+    radical: '木 (mù) – bộ Mộc',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '那',
+    pinyin: 'nà, nèi',
+    hanViet: 'na',
+    meaning: 'kia, đó',
+    radical: '阝 (yì) – bộ Ấp',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '哪',
+    pinyin: 'nǎ, něi',
+    hanViet: 'na',
+    meaning: 'nào, đâu, ở đâu',
+    radical: '口 (kǒu) – bộ Khẩu',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '十',
+    pinyin: 'shí',
+    hanViet: 'thập',
+    meaning: 'mười',
+    radical: '十 (shí) – bộ Thập',
+    characterType: 'Chỉ sự'
+  }
 ];
