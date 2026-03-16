@@ -1,5 +1,5 @@
 {
   "name": "VNFT Chinese Speaking Test",
-  "description": "A lucky draw application for students to randomly select a speaking test question. The app displays a shuffling animation before revealing the final question in both Pinyin and Chinese. Currently includes 18 Chinese characters with detailed information (pinyin, Hán Việt, meaning, radical, and character type).",
+  "description": "An adaptive practice app for VNFT Chinese speaking and character recognition. The character deck currently includes 57 Chinese characters with pinyin, Hán Việt, meaning, radical, and character type.",
   "requestFramePermissions": []
 }
