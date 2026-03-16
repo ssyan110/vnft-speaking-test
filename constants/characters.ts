@@ -178,10 +178,10 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     "characterType": "Hình thanh"
   },
   {
-    "character": "八",
-    "pinyin": "bā",
-    "hanViet": "bát",
-    "meaning": "tám",
+    "character": "六",
+    "pinyin": "liù",
+    "hanViet": "lục",
+    "meaning": "sáu",
     "radical": "八 (bā) – bộ Bát",
     "characterType": "Chỉ sự"
   },
