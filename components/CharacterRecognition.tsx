@@ -242,21 +242,21 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     const updatedProgress: CharacterProgress =
       rating === 'hard'
         ? {
-            ...currentCardProgress,
-            seenCount: currentCardProgress.seenCount + 1,
-            hardCount: currentCardProgress.hardCount + 1,
-            isHard: true,
-            completedCycle,
-            lastReviewedAt: reviewedAt,
-          }
+          ...currentCardProgress,
+          seenCount: currentCardProgress.seenCount + 1,
+          hardCount: currentCardProgress.hardCount + 1,
+          isHard: true,
+          completedCycle,
+          lastReviewedAt: reviewedAt,
+        }
         : {
-            ...currentCardProgress,
-            seenCount: currentCardProgress.seenCount + 1,
-            easyCount: currentCardProgress.easyCount + 1,
-            isHard: false,
-            completedCycle,
-            lastReviewedAt: reviewedAt,
-          };
+          ...currentCardProgress,
+          seenCount: currentCardProgress.seenCount + 1,
+          easyCount: currentCardProgress.easyCount + 1,
+          isHard: false,
+          completedCycle,
+          lastReviewedAt: reviewedAt,
+        };
 
     setProgressMap((previousMap) => ({
       ...previousMap,
@@ -370,7 +370,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             onClick={() => setShowExtraInfo((previous) => !previous)}
             className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
           >
-            {showExtraInfo ? 'Ẩn' : 'Thêm'}
+            {showExtraInfo ? 'Ẩn' : 'Xem thêm thông tin'}
           </button>
         </div>
 
@@ -565,21 +565,19 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
           <div className="mt-3 flex gap-2">
             <button
               onClick={() => selectMode('all')}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                reviewMode === 'all'
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${reviewMode === 'all'
                   ? 'bg-emerald-500 text-white'
                   : 'bg-white text-emerald-700 border border-emerald-200'
-              }`}
+                }`}
             >
               Luyện tất cả
             </button>
             <button
               onClick={() => selectMode('hard')}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                reviewMode === 'hard'
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${reviewMode === 'hard'
                   ? 'bg-amber-500 text-white'
                   : 'bg-white text-emerald-700 border border-emerald-200'
-              }`}
+                }`}
             >
               Ôn chữ khó
             </button>
