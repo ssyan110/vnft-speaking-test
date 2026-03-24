@@ -42,4 +42,24 @@ export const QUESTIONS: Question[] = [
     pinyin: 'nǐ kě yǐ zài duō jiǔ yǐ nèi zuò wán yí fèn bào gào?',
     chinese: '你可以在多久以内做完一份报告？',
   },
+  {
+    pinyin: 'nǐ cháng zěn me yù dìng jiǔ diàn? wèi shén me?',
+    chinese: '你常怎么预订酒店？为什么？',
+  },
+  {
+    pinyin: 'nǐ xǐ huān hǎi jǐng fáng hái shi shì jǐng fáng? wèi shén me?',
+    chinese: '你喜欢海景房还是市景房？为什么？',
+  },
+  {
+    pinyin: 'nǐ jué de “miǎn fèi qǔ xiāo” zhòng yào ma? wèi shén me?',
+    chinese: '你觉得“免费取消”重要吗？为什么？',
+  },
+  {
+    pinyin: 'nǐ jué de “miǎn fèi zǎo cān” zhòng yào ma? wèi shén me?',
+    chinese: '你觉得“免费早餐”重要吗？为什么？',
+  },
+  {
+    pinyin: 'zài yuè nán de jiǔ diàn, zěn me bàn rù zhù? qǐng nǐ jiǎn dān de jiè shào.',
+    chinese: '在越南的酒店，怎么办入住？请你简单地介绍。',
+  },
 ];
