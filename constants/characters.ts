@@ -496,5 +496,45 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'mười',
     radical: '十 (shí) – bộ Thập',
     characterType: 'Chỉ sự'
+  },
+  {
+    character: '工',
+    pinyin: 'gōng',
+    hanViet: 'công',
+    meaning: 'công, việc, công việc, thợ',
+    radical: '工 (gōng) – bộ Công',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '作',
+    pinyin: 'zuò',
+    hanViet: 'tác',
+    meaning: 'làm, tạo ra, sáng tạo, làm việc',
+    radical: '亻 (rén) – bộ Nhân đứng',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '日',
+    pinyin: 'rì',
+    hanViet: 'nhật',
+    meaning: 'mặt trời, ngày',
+    radical: '日 (rì) – bộ Nhật',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '是',
+    pinyin: 'shì',
+    hanViet: 'thị',
+    meaning: 'là, đúng, phải',
+    radical: '日 (rì) – bộ Nhật',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '这',
+    pinyin: 'zhè',
+    hanViet: 'giá',
+    meaning: 'đây, cái này',
+    radical: '辶 (chuò) – bộ Sước',
+    characterType: 'Hình thanh'
   }
 ];
