@@ -536,5 +536,45 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'đây, cái này',
     radical: '辶 (chuò) – bộ Sước',
     characterType: 'Hình thanh'
+  },
+  {
+    character: '进',
+    pinyin: 'jìn',
+    hanViet: 'tiến',
+    meaning: 'vào, tiến vào, tiến lên',
+    radical: '辶 (chuò) – bộ Sước',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '老',
+    pinyin: 'lǎo',
+    hanViet: 'lão',
+    meaning: 'già, lớn tuổi, cũ, lâu năm',
+    radical: '老 (lǎo) – bộ Lão',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '师',
+    pinyin: 'shī',
+    hanViet: 'sư',
+    meaning: 'thầy, giáo viên, sư phụ',
+    radical: '巾 (jīn) – bộ Cân',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '身',
+    pinyin: 'shēn',
+    hanViet: 'thân',
+    meaning: 'thân, thân thể, cơ thể',
+    radical: '身 (shēn) – bộ Thân',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '体',
+    pinyin: 'tǐ',
+    hanViet: 'thể',
+    meaning: 'thân thể, cơ thể',
+    radical: '亻 (rén) – bộ Nhân đứng',
+    characterType: 'Hội ý'
   }
 ];
