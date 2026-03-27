@@ -514,14 +514,6 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     characterType: 'Hình thanh'
   },
   {
-    character: '日',
-    pinyin: 'rì',
-    hanViet: 'nhật',
-    meaning: 'mặt trời, ngày',
-    radical: '日 (rì) – bộ Nhật',
-    characterType: 'Tượng hình'
-  },
-  {
     character: '是',
     pinyin: 'shì',
     hanViet: 'thị',
@@ -576,5 +568,13 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'thân thể, cơ thể',
     radical: '亻 (rén) – bộ Nhân đứng',
     characterType: 'Hội ý'
+  },
+  {
+    character: '昨',
+    pinyin: 'zuó',
+    hanViet: 'tạc',
+    meaning: 'hôm qua',
+    radical: '日 (rì) – bộ Nhật',
+    characterType: 'Hình thanh'
   }
 ];
