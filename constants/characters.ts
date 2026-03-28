@@ -608,7 +608,7 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'gọi, kêu',
     radical: '口 (kǒu) – bộ Khẩu',
     characterType: 'Hình thanh'
-  }，
+  },
   {
     character: '门',
     pinyin: 'mén',
