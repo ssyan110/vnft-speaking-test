@@ -576,5 +576,53 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'hôm qua',
     radical: '日 (rì) – bộ Nhật',
     characterType: 'Hình thanh'
+  },
+  {
+    character: '谢',
+    pinyin: 'xiè',
+    hanViet: 'tạ',
+    meaning: 'cảm ơn, xin lỗi, từ chối, tàn',
+    radical: '讠 (yán) – bộ Ngôn',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '人',
+    pinyin: 'rén',
+    hanViet: 'nhân',
+    meaning: 'người',
+    radical: '人 (rén) – bộ Nhân',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '问',
+    pinyin: 'wèn',
+    hanViet: 'vấn',
+    meaning: 'hỏi',
+    radical: '门 (mén) – bộ Môn',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '叫',
+    pinyin: 'jiào',
+    hanViet: 'khiếu',
+    meaning: 'gọi, kêu',
+    radical: '口 (kǒu) – bộ Khẩu',
+    characterType: 'Hình thanh'
+  }，
+  {
+    character: '门',
+    pinyin: 'mén',
+    hanViet: 'môn',
+    meaning: 'cửa',
+    radical: '门 (mén) – bộ Môn',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '们',
+    pinyin: 'men',
+    hanViet: 'môn',
+    meaning: 'trợ từ số nhiều dùng sau đại từ hoặc từ chỉ người',
+    radical: '亻 (rén) – bộ Nhân đứng',
+    characterType: 'Hình thanh'
   }
 ];
