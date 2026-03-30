@@ -624,5 +624,45 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'trợ từ số nhiều dùng sau đại từ hoặc từ chỉ người',
     radical: '亻 (rén) – bộ Nhân đứng',
     characterType: 'Hình thanh'
+  },
+  {
+    character: '名',
+    pinyin: 'míng',
+    hanViet: 'danh',
+    meaning: 'tên, tên gọi',
+    radical: '夕 (xī) – bộ Tịch',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '字',
+    pinyin: 'zì',
+    hanViet: 'tự',
+    meaning: 'chữ, chữ viết, văn tự',
+    radical: '子 (zǐ) – bộ Tử',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '国',
+    pinyin: 'guó',
+    hanViet: 'quốc',
+    meaning: 'nước, quốc gia',
+    radical: '囗 (wéi) – bộ Vi',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '中',
+    pinyin: 'zhōng',
+    hanViet: 'trung',
+    meaning: 'ở giữa, trung tâm',
+    radical: '丨 (gǔn) – bộ Cổn',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '文',
+    pinyin: 'wén',
+    hanViet: 'văn',
+    meaning: 'văn, chữ viết, văn tự, hoa văn',
+    radical: '文 (wén) – bộ Văn',
+    characterType: 'Tượng hình'
   }
 ];
