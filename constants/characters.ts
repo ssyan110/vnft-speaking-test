@@ -664,5 +664,37 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'văn, chữ viết, văn tự, hoa văn',
     radical: '文 (wén) – bộ Văn',
     characterType: 'Tượng hình'
+  },
+  {
+    character: '习',
+    pinyin: 'xí',
+    hanViet: 'tập',
+    meaning: 'luyện tập, học',
+    radical: '乙 (yǐ) – bộ Ất',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '发',
+    pinyin: 'fā',
+    hanViet: 'phát',
+    meaning: 'phát ra, phát triển, phát sinh',
+    radical: '又 (yòu) – bộ Hựu',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '音',
+    pinyin: 'yīn',
+    hanViet: 'âm',
+    meaning: 'âm thanh, tiếng',
+    radical: '音 (yīn) – bộ Âm',
+    characterType: 'Chỉ sự'
+  },
+  {
+    character: '朋',
+    pinyin: 'péng',
+    hanViet: 'bằng',
+    meaning: 'bạn bè',
+    radical: '月 (yuè) – bộ Nguyệt',
+    characterType: 'Tượng hình'
   }
 ];
