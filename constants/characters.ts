@@ -696,5 +696,45 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'bạn bè',
     radical: '月 (yuè) – bộ Nguyệt',
     characterType: 'Tượng hình'
+  },
+  {
+    character: '书',
+    pinyin: 'shū',
+    hanViet: 'thư',
+    meaning: 'sách, viết, ghi chép',
+    radical: '乙 (yǐ) – bộ Ất',
+    characterType: 'Giả tá'
+  },
+  {
+    character: '个',
+    pinyin: 'gè',
+    hanViet: 'cá',
+    meaning: 'lượng từ (cái, chiếc, con)',
+    radical: '亻 (rén) – bộ Nhân đứng',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '午',
+    pinyin: 'wǔ',
+    hanViet: 'ngọ',
+    meaning: 'trưa, buổi trưa',
+    radical: '十 (shí) – bộ Thập',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '头',
+    pinyin: 'tóu',
+    hanViet: 'đầu',
+    meaning: 'đầu, cái đầu',
+    radical: '大 (dà) – bộ Đại',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '米',
+    pinyin: 'mǐ',
+    hanViet: 'mễ',
+    meaning: 'gạo, mét',
+    radical: '米 (mǐ) – bộ Mễ',
+    characterType: 'Tượng hình'
   }
 ];
