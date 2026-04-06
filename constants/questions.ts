@@ -62,4 +62,24 @@ export const QUESTIONS: Question[] = [
     pinyin: 'zài yuè nán de jiǔ diàn, zěn me bàn rù zhù? qǐng nǐ jiǎn dān de jiè shào.',
     chinese: '在越南的酒店，怎么办入住？请你简单地介绍。',
   },
+  {
+    pinyin: 'nǐ xǐ huān yí gè rén yùn dòng hái shi hé péng you yì qǐ? wèi shén me?',
+    chinese: '你喜欢一个人运动还是和朋友一起？为什么？',
+  },
+  {
+    pinyin: 'nǐ xǐ huān zǎo shang hái shi wǎn shang yùn dòng? wèi shén me?',
+    chinese: '你喜欢早上还是晚上运动？为什么？',
+  },
+  {
+    pinyin: 'nǐ jué de zài jiā, zài wài miàn, hái shi zài jiàn shēn fáng yùn dòng hǎo? wèi shén me?',
+    chinese: '你觉得在家、在外面，还是在健身房运动好？为什么？',
+  },
+  {
+    pinyin: 'nǐ cháng zuò shén me yùn dòng?',
+    chinese: '你常做什么运动？',
+  },
+  {
+    pinyin: 'nǐ yùn dòng ma? zuò shén me yùn dòng? zuò duō jiǔ?',
+    chinese: '你运动吗？做什么运动？做多久？',
+  },
 ];
