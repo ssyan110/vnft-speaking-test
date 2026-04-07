@@ -736,5 +736,29 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'gạo, mét',
     radical: '米 (mǐ) – bộ Mễ',
     characterType: 'Tượng hình'
+  },
+  {
+    character: '吃',
+    pinyin: 'chī',
+    hanViet: 'ngật',
+    meaning: 'ăn',
+    radical: '口 (kǒu) – bộ Khẩu',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '要',
+    pinyin: 'yào',
+    hanViet: 'yếu',
+    meaning: 'muốn, cần',
+    radical: '襾 (yà) – bộ Á',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '饭',
+    pinyin: 'fàn',
+    hanViet: 'phạn',
+    meaning: 'cơm',
+    radical: '饣 (shí) – bộ Thực',
+    characterType: 'Hình thanh'
   }
 ];
