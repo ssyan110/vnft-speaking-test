@@ -760,5 +760,21 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'cơm',
     radical: '饣 (shí) – bộ Thực',
     characterType: 'Hình thanh'
+  },
+  {
+    character: '些',
+    pinyin: 'xiē',
+    hanViet: 'ta',
+    meaning: 'một ít, vài, một số',
+    radical: '止 (zhǐ) – bộ Chỉ',
+    characterType: 'Hội ý'
+  },
+  {
+    character: '包',
+    pinyin: 'bāo',
+    hanViet: 'bao',
+    meaning: 'gói, bao, bọc, chứa đựng',
+    radical: '勹 (bāo) – bộ Bao',
+    characterType: 'Hội ý'
   }
 ];
