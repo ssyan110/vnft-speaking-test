@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CHINESE_CHARACTERS } from '../constants/characters';
 import { CharacterProgress, ChineseCharacter, PracticeRating, PracticeSessionStats } from '../types';
 import {
@@ -17,7 +17,7 @@ import ProgressMapView from './ProgressMapView';
 
 const ROUND_SIZE = 10;
 
-type PracticeState = 'idle' | 'prompt' | 'answer' | 'round_complete';
+type PracticeState = 'idle' | 'prompt' | 'answer' | 'round_complete' | 'all_done';
 type ReviewMode = 'all' | 'hard';
 
 interface CharacterRecognitionProps {
@@ -30,14 +30,19 @@ const createInitialStats = (): PracticeSessionStats => ({
   easy: 0,
 });
 
-const countCompletedInCycle = (progressMap: ProgressMap, currentCycle: number) =>
-  CHINESE_CHARACTERS.filter(({ character }) => {
-    const progress = progressMap[character];
-    return progress ? progress.completedCycle >= currentCycle : false;
-  }).length;
-
 const getHardCharacters = (progressMap: ProgressMap) =>
   CHINESE_CHARACTERS.filter(({ character }) => progressMap[character]?.isHard);
+
+/** Get characters from selected lessons that haven't been reviewed in this session */
+const getUnreviewedCharacters = (
+  selectedLessons: number[],
+  sessionReviewed: Set<string>,
+): ChineseCharacter[] => {
+  const lessonSet = new Set(selectedLessons);
+  return CHINESE_CHARACTERS.filter(
+    (c) => lessonSet.has(c.lesson) && !sessionReviewed.has(c.character),
+  );
+};
 
 const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) => {
   const storedState = loadStoredState();
@@ -53,38 +58,42 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     return stored ?? getAvailableLessons(CHINESE_CHARACTERS);
   });
   const [showProgressMap, setShowProgressMap] = useState(false);
+  // Track characters reviewed in the current session (resets when going back to idle)
+  const [sessionReviewed, setSessionReviewed] = useState<Set<string>>(new Set());
 
-  const maxLesson = Math.max(...CHINESE_CHARACTERS.map(c => c.lesson));
+  const maxLesson = Math.max(...CHINESE_CHARACTERS.map((c) => c.lesson));
+
+  // Count of characters in selected lessons
+  const selectedCharCount = useMemo(() => {
+    const lessonSet = new Set(selectedLessons);
+    return CHINESE_CHARACTERS.filter((c) => lessonSet.has(c.lesson)).length;
+  }, [selectedLessons]);
+
+  // How many are left unreviewed in this session
+  const unreviewedCount = useMemo(
+    () => getUnreviewedCharacters(selectedLessons, sessionReviewed).length,
+    [selectedLessons, sessionReviewed],
+  );
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
+    if (typeof window === 'undefined') return;
     const hasProgress = Object.keys(progressMap).length > 0 || currentCycle > 0;
     if (!hasProgress) {
       window.localStorage.removeItem(STORAGE_KEY);
       window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       return;
     }
-
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        currentCycle,
-        progressMap,
-      }),
-    );
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentCycle, progressMap }));
     window.localStorage.removeItem(LEGACY_STORAGE_KEY);
   }, [currentCycle, progressMap]);
 
   const currentCard = roundQueue[0] ?? null;
-  const currentProgress = currentCard ? progressMap[currentCard.character] ?? createProgressRecord(currentCard.character) : null;
+  const currentProgress = currentCard
+    ? progressMap[currentCard.character] ?? createProgressRecord(currentCard.character)
+    : null;
   const hardCharacters = getHardCharacters(progressMap);
   const hardCount = hardCharacters.length;
-  const doneCount = countCompletedInCycle(progressMap, currentCycle);
-  const cardsLeft = practiceState === 'round_complete' ? 0 : roundQueue.length;
-  const discoveredCount = Object.keys(progressMap).length;
+  const cardsLeft = practiceState === 'round_complete' || practiceState === 'all_done' ? 0 : roundQueue.length;
 
   const resetRound = () => {
     setRoundQueue([]);
@@ -93,33 +102,44 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
   };
 
   const startRound = (mode = reviewMode) => {
-    let nextCycle = currentCycle;
-
-    if (mode === 'all' && countCompletedInCycle(progressMap, currentCycle) === CHINESE_CHARACTERS.length) {
-      nextCycle = currentCycle + 1;
-      setCurrentCycle(nextCycle);
-    }
-
-    let nextQueue: ChineseCharacter[];
     if (mode === 'hard') {
       const hard = getHardCharacters(progressMap);
       const shuffled = [...hard].sort(() => Math.random() - 0.5).slice(0, ROUND_SIZE);
-      nextQueue = shuffled;
-    } else {
-      nextQueue = buildWeightedRound(CHINESE_CHARACTERS, progressMap, selectedLessons, Date.now());
+      resetRound();
+      setReviewMode(mode);
+      setRoundQueue(shuffled);
+      setPracticeState(shuffled.length > 0 ? 'prompt' : 'round_complete');
+      return;
     }
+
+    // Filter out already-reviewed characters from this session
+    const unreviewed = getUnreviewedCharacters(selectedLessons, sessionReviewed);
+
+    if (unreviewed.length === 0) {
+      // All characters in selected lessons have been reviewed
+      resetRound();
+      setReviewMode(mode);
+      setPracticeState('all_done');
+      return;
+    }
+
+    // Build a weighted round from only the unreviewed characters
+    const nextQueue = buildWeightedRound(
+      unreviewed,
+      progressMap,
+      selectedLessons,
+      Date.now(),
+      Math.min(ROUND_SIZE, unreviewed.length),
+    );
 
     resetRound();
     setReviewMode(mode);
     setRoundQueue(nextQueue);
-    setPracticeState(nextQueue.length > 0 ? 'prompt' : 'round_complete');
+    setPracticeState(nextQueue.length > 0 ? 'prompt' : 'all_done');
   };
 
   const selectMode = (mode: ReviewMode) => {
-    if (mode === reviewMode) {
-      return;
-    }
-
+    if (mode === reviewMode) return;
     setReviewMode(mode);
     resetRound();
     setPracticeState('idle');
@@ -133,57 +153,72 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
   };
 
   const handleRateCard = (rating: PracticeRating) => {
-    if (!currentCard || practiceState !== 'answer') {
-      return;
-    }
+    if (!currentCard || practiceState !== 'answer') return;
 
     const reviewedAt = Date.now();
-    const currentCardProgress = progressMap[currentCard.character] ?? createProgressRecord(currentCard.character);
+    const currentCardProgress =
+      progressMap[currentCard.character] ?? createProgressRecord(currentCard.character);
     const completedCycle =
       reviewMode === 'all' ? currentCycle : currentCardProgress.completedCycle;
     const ratedProgress = applyRating(currentCardProgress, rating, reviewedAt);
-    const updatedProgress: CharacterProgress = {
-      ...ratedProgress,
-      completedCycle,
-    };
+    const updatedProgress: CharacterProgress = { ...ratedProgress, completedCycle };
 
-    setProgressMap((previousMap) => ({
-      ...previousMap,
-      [currentCard.character]: updatedProgress,
+    setProgressMap((prev) => ({ ...prev, [currentCard.character]: updatedProgress }));
+    setSessionStats((prev) => ({
+      reviewed: prev.reviewed + 1,
+      hard: prev.hard + (rating === 'hard' ? 1 : 0),
+      easy: prev.easy + (rating === 'easy' ? 1 : 0),
     }));
 
-    setSessionStats((previousStats) => ({
-      reviewed: previousStats.reviewed + 1,
-      hard: previousStats.hard + (rating === 'hard' ? 1 : 0),
-      easy: previousStats.easy + (rating === 'easy' ? 1 : 0),
-    }));
+    // Mark as reviewed in this session
+    setSessionReviewed((prev) => new Set(prev).add(currentCard.character));
 
     const nextQueue = roundQueue.slice(1);
-
     setRoundQueue(nextQueue);
     setShowExtraInfo(false);
-    setPracticeState(nextQueue.length > 0 ? 'prompt' : 'round_complete');
+
+    if (nextQueue.length > 0) {
+      setPracticeState('prompt');
+    } else {
+      // Round finished — check if there are more unreviewed characters
+      // We need to account for the character we just reviewed
+      const updatedReviewed = new Set(sessionReviewed);
+      updatedReviewed.add(currentCard.character);
+      const remaining = getUnreviewedCharacters(selectedLessons, updatedReviewed);
+      setPracticeState(remaining.length > 0 ? 'round_complete' : 'all_done');
+    }
   };
 
   const handleResetProgress = () => {
     if (typeof window !== 'undefined') {
       const shouldReset = window.confirm('Xóa toàn bộ tiến độ?');
-      if (!shouldReset) {
-        return;
-      }
-
+      if (!shouldReset) return;
       window.localStorage.removeItem(STORAGE_KEY);
       window.localStorage.removeItem(LEGACY_STORAGE_KEY);
       clearLessonSelection();
     }
-
     setProgressMap({});
     setCurrentCycle(0);
     setSelectedLessons(getAvailableLessons(CHINESE_CHARACTERS));
+    setSessionReviewed(new Set());
     resetRound();
     setPracticeState('idle');
     setReviewMode('all');
   };
+
+  const handleBackToLessons = () => {
+    setSessionReviewed(new Set());
+    resetRound();
+    setPracticeState('idle');
+  };
+
+  const handleRedoLessons = () => {
+    setSessionReviewed(new Set());
+    resetRound();
+    startRound('all');
+  };
+
+  // ─── Render helpers ───
 
   const renderIdle = () => {
     if (reviewMode === 'hard' && hardCount === 0) {
@@ -202,7 +237,6 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             <div className="text-5xl font-bold text-emerald-700">{hardCount}</div>
             <div className="mt-2 text-lg font-semibold text-emerald-900">Chữ khó</div>
           </div>
-
           <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
             <div className="flex flex-wrap gap-2">
               {hardCharacters.map((character) => (
@@ -255,10 +289,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
   };
 
   const renderPrompt = () => {
-    if (!currentCard) {
-      return null;
-    }
-
+    if (!currentCard) return null;
     return (
       <div className="flex h-full flex-col items-center justify-center gap-5 text-center">
         <div className="text-[6rem] font-bold leading-none text-emerald-700 sm:text-[8rem] lg:text-[10rem]">
@@ -272,22 +303,18 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
   };
 
   const renderAnswer = () => {
-    if (!currentCard) {
-      return null;
-    }
-
+    if (!currentCard) return null;
     return (
       <div className="flex h-full flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <div className="text-5xl font-bold text-emerald-700 sm:text-6xl">{currentCard.character}</div>
           <button
-            onClick={() => setShowExtraInfo((previous) => !previous)}
+            onClick={() => setShowExtraInfo((prev) => !prev)}
             className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
           >
-            {showExtraInfo ? 'Ẩn' : 'Xem thêm thông tin'}
+            {showExtraInfo ? 'Ẩn' : 'Xem thêm'}
           </button>
         </div>
-
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl bg-emerald-50 p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Pinyin</div>
@@ -298,7 +325,6 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             <div className="mt-2 text-xl font-semibold text-emerald-900 sm:text-2xl">{currentCard.meaning}</div>
           </div>
         </div>
-
         {showExtraInfo && (
           <div className="grid gap-3 rounded-2xl border border-emerald-200 bg-white p-4 sm:grid-cols-3">
             <div>
@@ -319,67 +345,89 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     );
   };
 
-  const renderRoundComplete = () => {
-    const visibleHardCharacters = hardCharacters.slice(0, 8);
-
-    return (
-      <div className="flex h-full flex-col gap-5">
-        <div className="text-center">
-          <div className="text-3xl font-bold text-emerald-900">Xong vòng</div>
+  const renderRoundComplete = () => (
+    <div className="flex h-full flex-col gap-5">
+      <div className="text-center">
+        <div className="text-3xl font-bold text-emerald-900">Xong vòng!</div>
+        <div className="mt-2 text-sm text-emerald-600">
+          Còn {unreviewedCount} chữ chưa ôn
         </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-emerald-50 p-4 text-center">
-            <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Đã xem</div>
-            <div className="mt-2 text-2xl font-bold text-emerald-800">{sessionStats.reviewed}</div>
-          </div>
-          <div className="rounded-2xl bg-amber-50 p-4 text-center">
-            <div className="text-xs uppercase tracking-[0.18em] text-amber-500">Khó</div>
-            <div className="mt-2 text-2xl font-bold text-amber-700">{sessionStats.hard}</div>
-          </div>
-          <div className="rounded-2xl bg-emerald-100 p-4 text-center">
-            <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Dễ</div>
-            <div className="mt-2 text-2xl font-bold text-emerald-700">{sessionStats.easy}</div>
-          </div>
-        </div>
-
-        {hardCount > 0 && (
-          <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-            <div className="mb-3 text-sm font-semibold text-emerald-800">Chữ khó</div>
-            <div className="flex flex-wrap gap-2">
-              {visibleHardCharacters.map((character) => (
-                <button
-                  key={character.character}
-                  onClick={() => {
-                    setReviewMode('hard');
-                    setPracticeState('idle');
-                    resetRound();
-                  }}
-                  className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700"
-                >
-                  {character.character}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
-    );
-  };
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-2xl bg-emerald-50 p-4 text-center">
+          <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Đã xem</div>
+          <div className="mt-2 text-2xl font-bold text-emerald-800">{sessionStats.reviewed}</div>
+        </div>
+        <div className="rounded-2xl bg-amber-50 p-4 text-center">
+          <div className="text-xs uppercase tracking-[0.18em] text-amber-500">Khó</div>
+          <div className="mt-2 text-2xl font-bold text-amber-700">{sessionStats.hard}</div>
+        </div>
+        <div className="rounded-2xl bg-emerald-100 p-4 text-center">
+          <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Dễ</div>
+          <div className="mt-2 text-2xl font-bold text-emerald-700">{sessionStats.easy}</div>
+        </div>
+      </div>
+      {hardCount > 0 && (
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+          <div className="mb-3 text-sm font-semibold text-emerald-800">Chữ khó</div>
+          <div className="flex flex-wrap gap-2">
+            {hardCharacters.slice(0, 8).map((character) => (
+              <div
+                key={character.character}
+                className="rounded-full border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700"
+              >
+                {character.character}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderAllDone = () => (
+    <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
+      <div className="text-5xl">🎉</div>
+      <div>
+        <div className="text-2xl font-bold text-emerald-900">Đã ôn hết!</div>
+        <div className="mt-2 text-sm text-emerald-600">
+          Bạn đã luyện xong {sessionStats.reviewed} chữ trong các bài đã chọn
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 w-full">
+        <div className="rounded-2xl bg-emerald-50 p-3 text-center">
+          <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Đã xem</div>
+          <div className="mt-1 text-xl font-bold text-emerald-800">{sessionStats.reviewed}</div>
+        </div>
+        <div className="rounded-2xl bg-amber-50 p-3 text-center">
+          <div className="text-xs uppercase tracking-[0.18em] text-amber-500">Khó</div>
+          <div className="mt-1 text-xl font-bold text-amber-700">{sessionStats.hard}</div>
+        </div>
+        <div className="rounded-2xl bg-emerald-100 p-3 text-center">
+          <div className="text-xs uppercase tracking-[0.18em] text-emerald-600">Dễ</div>
+          <div className="mt-1 text-xl font-bold text-emerald-700">{sessionStats.easy}</div>
+        </div>
+      </div>
+      {hardCount > 0 && (
+        <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+          <div className="mb-2 text-sm font-semibold text-emerald-800">Chữ khó ({hardCount})</div>
+          <div className="flex flex-wrap gap-2">
+            {hardCharacters.slice(0, 12).map((c) => (
+              <div key={c.character} className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-700">
+                {c.character}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const renderContent = () => {
-    if (practiceState === 'idle') {
-      return renderIdle();
-    }
-
-    if (practiceState === 'prompt') {
-      return renderPrompt();
-    }
-
-    if (practiceState === 'answer') {
-      return renderAnswer();
-    }
-
+    if (practiceState === 'idle') return renderIdle();
+    if (practiceState === 'prompt') return renderPrompt();
+    if (practiceState === 'answer') return renderAnswer();
+    if (practiceState === 'all_done') return renderAllDone();
     return renderRoundComplete();
   };
 
@@ -388,7 +436,10 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       return (
         <button
           onClick={() => startRound(reviewMode)}
-          disabled={(reviewMode === 'hard' && hardCount === 0) || (reviewMode === 'all' && selectedLessons.length === 0)}
+          disabled={
+            (reviewMode === 'hard' && hardCount === 0) ||
+            (reviewMode === 'all' && selectedLessons.length === 0)
+          }
           className="w-full sm:w-auto rounded-2xl bg-emerald-500 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
         >
           Bắt đầu
@@ -426,27 +477,39 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       );
     }
 
+    if (practiceState === 'all_done') {
+      return (
+        <div className="grid w-full gap-2 sm:grid-cols-2">
+          <button
+            onClick={handleBackToLessons}
+            className="rounded-2xl bg-emerald-500 px-8 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-emerald-600 sm:text-lg"
+          >
+            Chọn bài khác
+          </button>
+          <button
+            onClick={handleRedoLessons}
+            className="rounded-2xl border border-emerald-200 bg-white px-8 py-4 text-base font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 sm:text-lg"
+          >
+            Luyện lại
+          </button>
+        </div>
+      );
+    }
+
+    // round_complete — there are still unreviewed characters
     return (
-      <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
+      <div className="grid w-full gap-2 sm:grid-cols-2">
         <button
           onClick={() => startRound(reviewMode)}
           className="rounded-2xl bg-emerald-500 px-8 py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-emerald-600 sm:text-lg"
         >
-          Vòng mới
+          Vòng tiếp ({unreviewedCount} chữ)
         </button>
         <button
-          onClick={() => {
-            if (reviewMode === 'all') {
-              startRound('hard');
-              return;
-            }
-
-            selectMode('all');
-          }}
-          disabled={reviewMode === 'all' && hardCount === 0}
-          className="rounded-2xl border border-emerald-200 bg-white px-8 py-4 text-base font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 disabled:cursor-not-allowed disabled:text-emerald-300 sm:text-lg"
+          onClick={handleBackToLessons}
+          className="rounded-2xl border border-emerald-200 bg-white px-8 py-4 text-base font-bold text-emerald-700 shadow-sm transition-all hover:bg-emerald-50 sm:text-lg"
         >
-          {reviewMode === 'all' ? 'Ôn chữ khó' : 'Luyện tất cả'}
+          Về chọn bài
         </button>
       </div>
     );
@@ -463,11 +526,9 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
             >
               ← Quay lại
             </button>
-
             <div className="min-w-0 flex-1 text-center">
               <h1 className="truncate text-xl font-bold text-emerald-800 sm:text-2xl">Tập nhận diện chữ Hán</h1>
             </div>
-
             <button
               onClick={handleResetProgress}
               className="shrink-0 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
@@ -479,19 +540,21 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
           <div className="mt-3 flex gap-2">
             <button
               onClick={() => selectMode('all')}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${reviewMode === 'all'
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                reviewMode === 'all'
                   ? 'bg-emerald-500 text-white'
                   : 'bg-white text-emerald-700 border border-emerald-200'
-                }`}
+              }`}
             >
               Luyện tất cả
             </button>
             <button
               onClick={() => selectMode('hard')}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${reviewMode === 'hard'
+              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                reviewMode === 'hard'
                   ? 'bg-amber-500 text-white'
                   : 'bg-white text-emerald-700 border border-emerald-200'
-                }`}
+              }`}
             >
               Ôn chữ khó
             </button>
@@ -507,8 +570,8 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
               <div className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{hardCount}</div>
             </div>
             <div className="rounded-2xl bg-white/80 px-3 py-2 text-center shadow-sm ring-1 ring-emerald-100">
-              <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Đã xong</div>
-              <div className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{doneCount}</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-emerald-500 sm:text-xs">Đã ôn</div>
+              <div className="mt-1 text-lg font-bold text-emerald-800 sm:text-2xl">{sessionReviewed.size}</div>
             </div>
           </div>
         </div>
@@ -528,7 +591,6 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
                   </div>
                 )}
               </div>
-
               <div className="min-h-0 flex-1 overflow-y-auto pt-5">
                 {renderContent()}
               </div>
