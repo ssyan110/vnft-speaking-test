@@ -776,5 +776,29 @@ export const CHINESE_CHARACTERS: ChineseCharacter[] = [
     meaning: 'gói, bao, bọc, chứa đựng',
     radical: '勹 (bāo) – bộ Bao',
     characterType: 'Hội ý'
+  },
+  {
+    character: '面',
+    pinyin: 'miàn',
+    hanViet: 'diện',
+    meaning: 'mặt, bề mặt, mì',
+    radical: '面 (miàn) – bộ Diện',
+    characterType: 'Tượng hình'
+  },
+  {
+    character: '条',
+    pinyin: 'tiáo',
+    hanViet: 'điều',
+    meaning: 'sợi, vật dài; điều, khoản; lượng từ',
+    radical: '木 (mù) – bộ Mộc',
+    characterType: 'Hình thanh'
+  },
+  {
+    character: '喝',
+    pinyin: 'hē',
+    hanViet: 'hạt',
+    meaning: 'uống',
+    radical: '口 (kǒu) – bộ Khẩu',
+    characterType: 'Hình thanh'
   }
 ];
