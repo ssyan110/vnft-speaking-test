@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import type { ChineseCharacter, ProgressMap } from '../types';
-import { computeWeight } from '../utils/selectionEngine';
 import { LESSON_METADATA } from '../constants/lessonData';
 
 interface ProgressMapViewProps {
@@ -29,18 +28,17 @@ function formatErrorRate(seenCount: number, hardCount: number): string {
 const ProgressMapView: React.FC<ProgressMapViewProps> = ({
   characters,
   progressMap,
-  maxLesson,
 }) => {
   const now = useMemo(() => Date.now(), []);
 
   const sortedCharacters = useMemo(() => {
-    const weighted = characters.map((character) => ({
-      character,
-      weight: computeWeight(character, progressMap[character.character], now, maxLesson),
-    }));
-    weighted.sort((a, b) => b.weight - a.weight);
-    return weighted;
-  }, [characters, progressMap, now, maxLesson]);
+    return characters
+      .map((character) => ({
+        character,
+        seenCount: progressMap[character.character]?.seenCount ?? 0,
+      }))
+      .sort((a, b) => b.seenCount - a.seenCount);
+  }, [characters, progressMap]);
 
   if (sortedCharacters.length === 0) {
     return (
@@ -56,9 +54,8 @@ const ProgressMapView: React.FC<ProgressMapViewProps> = ({
         Bản đồ tiến trình ({sortedCharacters.length} chữ)
       </div>
       <div className="flex max-h-96 flex-col gap-2 overflow-y-auto pr-1">
-        {sortedCharacters.map(({ character, weight }) => {
+        {sortedCharacters.map(({ character, seenCount }) => {
           const progress = progressMap[character.character];
-          const seenCount = progress?.seenCount ?? 0;
           const hardCount = progress?.hardCount ?? 0;
           const lastReviewedAt = progress?.lastReviewedAt ?? null;
           const lessonLabel = LESSON_METADATA[character.lesson] ?? `Bài ${character.lesson}`;
