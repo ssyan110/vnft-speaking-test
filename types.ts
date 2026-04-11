@@ -11,6 +11,7 @@ export interface ChineseCharacter {
   meaning: string;
   radical: string;
   characterType: string;
+  lesson: number;
 }
 
 export type PracticeRating = 'hard' | 'easy';
@@ -30,3 +31,7 @@ export interface PracticeSessionStats {
   hard: number;
   easy: number;
 }
+
+export type LessonMetadata = Record<number, string>;
+
+export type ProgressMap = Record<string, CharacterProgress>;

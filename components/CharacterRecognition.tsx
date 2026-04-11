@@ -1,136 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { CHINESE_CHARACTERS } from '../constants/characters';
 import { CharacterProgress, ChineseCharacter, PracticeRating, PracticeSessionStats } from '../types';
+import {
+  STORAGE_KEY,
+  LEGACY_STORAGE_KEY,
+  createProgressRecord,
+  loadStoredState,
+  applyRating,
+} from '../utils/progressStore';
+import type { ProgressMap } from '../utils/progressStore';
+import { buildWeightedRound } from '../utils/selectionEngine';
+import { loadLessonSelection, clearLessonSelection } from '../utils/lessonStorage';
+import { getAvailableLessons } from '../constants/lessonData';
+import LessonSelector from './LessonSelector';
+import ProgressMapView from './ProgressMapView';
 
 const ROUND_SIZE = 10;
-const STORAGE_KEY = 'vnft-character-progress-v2';
-const LEGACY_STORAGE_KEY = 'vnft-character-progress-v1';
 
 type PracticeState = 'idle' | 'prompt' | 'answer' | 'round_complete';
 type ReviewMode = 'all' | 'hard';
-type ProgressMap = Record<string, CharacterProgress>;
-
-interface StoredPracticeState {
-  currentCycle: number;
-  progressMap: ProgressMap;
-}
 
 interface CharacterRecognitionProps {
   onBack: () => void;
 }
-
-const CHARACTER_LOOKUP = CHINESE_CHARACTERS.reduce<Record<string, ChineseCharacter>>((lookup, entry) => {
-  lookup[entry.character] = entry;
-  return lookup;
-}, {});
-
-const CHARACTER_KEYS = new Set(CHINESE_CHARACTERS.map(({ character }) => character));
 
 const createInitialStats = (): PracticeSessionStats => ({
   reviewed: 0,
   hard: 0,
   easy: 0,
 });
-
-const createProgressRecord = (character: string): CharacterProgress => ({
-  character,
-  seenCount: 0,
-  hardCount: 0,
-  easyCount: 0,
-  isHard: false,
-  completedCycle: -1,
-  lastReviewedAt: null,
-});
-
-const toNonNegativeNumber = (value: unknown, fallback = 0) =>
-  typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : fallback;
-
-const sanitizeProgress = (raw: unknown): ProgressMap => {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return {};
-  }
-
-  return Object.entries(raw as Record<string, unknown>).reduce<ProgressMap>((progressMap, [character, value]) => {
-    if (!CHARACTER_KEYS.has(character) || !value || typeof value !== 'object' || Array.isArray(value)) {
-      return progressMap;
-    }
-
-    const entry = value as Partial<CharacterProgress> & {
-      lapses?: unknown;
-      streak?: unknown;
-    };
-
-    progressMap[character] = {
-      character,
-      seenCount: toNonNegativeNumber(entry.seenCount),
-      hardCount: toNonNegativeNumber(entry.hardCount, toNonNegativeNumber(entry.lapses)),
-      easyCount: toNonNegativeNumber(entry.easyCount, toNonNegativeNumber(entry.streak)),
-      isHard: Boolean(entry.isHard),
-      completedCycle:
-        typeof entry.completedCycle === 'number' && Number.isFinite(entry.completedCycle)
-          ? Math.floor(entry.completedCycle)
-          : -1,
-      lastReviewedAt:
-        typeof entry.lastReviewedAt === 'number' && Number.isFinite(entry.lastReviewedAt)
-          ? entry.lastReviewedAt
-          : null,
-    };
-
-    return progressMap;
-  }, {});
-};
-
-const loadStoredState = (): StoredPracticeState => {
-  if (typeof window === 'undefined') {
-    return {
-      currentCycle: 0,
-      progressMap: {},
-    };
-  }
-
-  try {
-    const current = window.localStorage.getItem(STORAGE_KEY);
-    if (current) {
-      const parsed = JSON.parse(current) as Partial<StoredPracticeState> | Record<string, unknown>;
-      return {
-        currentCycle:
-          typeof parsed.currentCycle === 'number' && Number.isFinite(parsed.currentCycle)
-            ? Math.max(0, Math.floor(parsed.currentCycle))
-            : 0,
-        progressMap: sanitizeProgress('progressMap' in parsed ? parsed.progressMap : parsed),
-      };
-    }
-
-    const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      return {
-        currentCycle: 0,
-        progressMap: sanitizeProgress(JSON.parse(legacy)),
-      };
-    }
-  } catch {
-    return {
-      currentCycle: 0,
-      progressMap: {},
-    };
-  }
-
-  return {
-    currentCycle: 0,
-    progressMap: {},
-  };
-};
-
-const shuffleCharacters = (characters: ChineseCharacter[]) => {
-  const shuffled = [...characters];
-
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-
-  return shuffled;
-};
 
 const countCompletedInCycle = (progressMap: ProgressMap, currentCycle: number) =>
   CHINESE_CHARACTERS.filter(({ character }) => {
@@ -141,17 +39,6 @@ const countCompletedInCycle = (progressMap: ProgressMap, currentCycle: number) =
 const getHardCharacters = (progressMap: ProgressMap) =>
   CHINESE_CHARACTERS.filter(({ character }) => progressMap[character]?.isHard);
 
-const buildMainQueue = (progressMap: ProgressMap, currentCycle: number) => {
-  const availableCharacters = CHINESE_CHARACTERS.filter(({ character }) => {
-    const progress = progressMap[character];
-    return progress ? progress.completedCycle < currentCycle : true;
-  });
-
-  return shuffleCharacters(availableCharacters).slice(0, ROUND_SIZE);
-};
-
-const buildHardQueue = (progressMap: ProgressMap) => shuffleCharacters(getHardCharacters(progressMap)).slice(0, ROUND_SIZE);
-
 const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) => {
   const storedState = loadStoredState();
   const [practiceState, setPracticeState] = useState<PracticeState>('idle');
@@ -161,6 +48,13 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
   const [currentCycle, setCurrentCycle] = useState<number>(storedState.currentCycle);
   const [sessionStats, setSessionStats] = useState<PracticeSessionStats>(createInitialStats());
   const [showExtraInfo, setShowExtraInfo] = useState(false);
+  const [selectedLessons, setSelectedLessons] = useState<number[]>(() => {
+    const stored = loadLessonSelection();
+    return stored ?? getAvailableLessons(CHINESE_CHARACTERS);
+  });
+  const [showProgressMap, setShowProgressMap] = useState(false);
+
+  const maxLesson = Math.max(...CHINESE_CHARACTERS.map(c => c.lesson));
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -206,7 +100,15 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       setCurrentCycle(nextCycle);
     }
 
-    const nextQueue = mode === 'hard' ? buildHardQueue(progressMap) : buildMainQueue(progressMap, nextCycle);
+    let nextQueue: ChineseCharacter[];
+    if (mode === 'hard') {
+      const hard = getHardCharacters(progressMap);
+      const shuffled = [...hard].sort(() => Math.random() - 0.5).slice(0, ROUND_SIZE);
+      nextQueue = shuffled;
+    } else {
+      nextQueue = buildWeightedRound(CHINESE_CHARACTERS, progressMap, selectedLessons, Date.now());
+    }
+
     resetRound();
     setReviewMode(mode);
     setRoundQueue(nextQueue);
@@ -239,24 +141,11 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     const currentCardProgress = progressMap[currentCard.character] ?? createProgressRecord(currentCard.character);
     const completedCycle =
       reviewMode === 'all' ? currentCycle : currentCardProgress.completedCycle;
-    const updatedProgress: CharacterProgress =
-      rating === 'hard'
-        ? {
-          ...currentCardProgress,
-          seenCount: currentCardProgress.seenCount + 1,
-          hardCount: currentCardProgress.hardCount + 1,
-          isHard: true,
-          completedCycle,
-          lastReviewedAt: reviewedAt,
-        }
-        : {
-          ...currentCardProgress,
-          seenCount: currentCardProgress.seenCount + 1,
-          easyCount: currentCardProgress.easyCount + 1,
-          isHard: false,
-          completedCycle,
-          lastReviewedAt: reviewedAt,
-        };
+    const ratedProgress = applyRating(currentCardProgress, rating, reviewedAt);
+    const updatedProgress: CharacterProgress = {
+      ...ratedProgress,
+      completedCycle,
+    };
 
     setProgressMap((previousMap) => ({
       ...previousMap,
@@ -285,10 +174,12 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
 
       window.localStorage.removeItem(STORAGE_KEY);
       window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      clearLessonSelection();
     }
 
     setProgressMap({});
     setCurrentCycle(0);
+    setSelectedLessons(getAvailableLessons(CHINESE_CHARACTERS));
     resetRound();
     setPracticeState('idle');
     setReviewMode('all');
@@ -329,13 +220,36 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
     }
 
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-        <div className="text-5xl font-bold text-emerald-700">
-          {reviewMode === 'hard' ? hardCount : CHINESE_CHARACTERS.length - doneCount}
-        </div>
-        <div className="text-lg font-semibold text-emerald-900">
-          {reviewMode === 'hard' ? 'Chữ khó' : 'Chữ còn lại'}
-        </div>
+      <div className="flex h-full flex-col gap-5">
+        {showProgressMap ? (
+          <>
+            <button
+              onClick={() => setShowProgressMap(false)}
+              className="self-start rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              Đóng
+            </button>
+            <ProgressMapView
+              characters={CHINESE_CHARACTERS}
+              progressMap={progressMap}
+              maxLesson={maxLesson}
+            />
+          </>
+        ) : (
+          <>
+            <LessonSelector
+              characters={CHINESE_CHARACTERS}
+              selectedLessons={selectedLessons}
+              onSelectionChange={setSelectedLessons}
+            />
+            <button
+              onClick={() => setShowProgressMap(true)}
+              className="self-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              📊 Tiến trình
+            </button>
+          </>
+        )}
       </div>
     );
   };
@@ -474,7 +388,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       return (
         <button
           onClick={() => startRound(reviewMode)}
-          disabled={reviewMode === 'hard' && hardCount === 0}
+          disabled={(reviewMode === 'hard' && hardCount === 0) || (reviewMode === 'all' && selectedLessons.length === 0)}
           className="w-full sm:w-auto rounded-2xl bg-emerald-500 px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
         >
           Bắt đầu
