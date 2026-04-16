@@ -121,14 +121,20 @@ const RAW_CHARACTERS: RawCharacter[] = [
   { character: '又', pinyin: 'yòu', hanViet: 'hựu', meaning: 'lại, nữa', radical: '又 (yòu) – bộ Hựu', characterType: 'Tượng hình' },
   { character: '了', pinyin: 'le', hanViet: 'liễu', meaning: 'trợ từ chỉ sự hoàn thành; xong, rồi', radical: '乙 (yǐ) – bộ Ất', characterType: 'Giả tá' },
   { character: '木', pinyin: 'mù', hanViet: 'mộc', meaning: 'cây, gỗ', radical: '木 (mù) – bộ Mộc', characterType: 'Tượng hình' },
-  // Bài 12 (index 99–...)
+  // Bài 12 (index 99–107)
   { character: '休', pinyin: 'xiū', hanViet: 'hưu', meaning: 'nghỉ ngơi', radical: '亻 (rén) – bộ Nhân đứng', characterType: 'Hội ý' },
   { character: '亡', pinyin: 'wáng', hanViet: 'vong', meaning: 'mất, chết, vong', radical: '亠 (tóu) – bộ Đầu', characterType: 'Chỉ sự' },
   { character: '酒', pinyin: 'jiǔ', hanViet: 'tửu', meaning: 'rượu', radical: '氵 (shuǐ) – bộ Thủy (ba chấm nước)', characterType: 'Hình thanh' },
   { character: '元', pinyin: 'yuán', hanViet: 'nguyên', meaning: 'đầu, đầu tiên, bắt đầu', radical: '儿 (ér) – bộ Nhi', characterType: 'Chỉ sự' },
-  { character: '毛', pinyin: 'máo', hanViet: 'mao', meaning: 'lông, tóc', radical: '毛 (máo) – bộ Mao', characterType: 'Tượng hình' },
+  { character: '毛', pinyin: 'máo', hanViet: 'mao', meaning: 'lông, hào', radical: '毛 (máo) – bộ Mao', characterType: 'Tượng hình' },
   { character: '分', pinyin: 'fēn', hanViet: 'phân', meaning: 'chia ra, phân chia', radical: '刀 (dāo) – bộ Đao', characterType: 'Hội ý' },
+  { character: '斤', pinyin: 'jīn', hanViet: 'cân', meaning: 'cân, đơn vị cân nặng', radical: '斤 (jīn) – bộ Cân', characterType: 'Tượng hình' },
+  { character: '多', pinyin: 'duō', hanViet: 'đa', meaning: 'nhiều', radical: '夕 (xī) – bộ Tịch', characterType: 'Hội ý' },
+  { character: '少', pinyin: 'shǎo', hanViet: 'thiểu', meaning: 'ít, thiếu, trẻ', radical: '小 (xiǎo) – bộ Tiểu', characterType: 'Tượng hình' },
+  // Bài 13 (index 108–116)
+  { character: '还', pinyin: 'hái, huán', hanViet: 'hoàn', meaning: 'còn, vẫn, lại; trả, quay về', radical: '辶 (chuò) – bộ Sước', characterType: 'Hình thanh' },
 ];
+
 
 /** Auto-assign lesson numbers: every 9 characters = 1 lesson (starting from Bài 1). */
 export const CHINESE_CHARACTERS: ChineseCharacter[] = RAW_CHARACTERS.map((raw, index) => ({
