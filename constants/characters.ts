@@ -125,7 +125,7 @@ const RAW_CHARACTERS: RawCharacter[] = [
   { character: '休', pinyin: 'xiū', hanViet: 'hưu', meaning: 'nghỉ ngơi', radical: '亻 (rén) – bộ Nhân đứng', characterType: 'Hội ý' },
   { character: '亡', pinyin: 'wáng', hanViet: 'vong', meaning: 'mất, chết, vong', radical: '亠 (tóu) – bộ Đầu', characterType: 'Chỉ sự' },
   { character: '酒', pinyin: 'jiǔ', hanViet: 'tửu', meaning: 'rượu', radical: '氵 (shuǐ) – bộ Thủy (ba chấm nước)', characterType: 'Hình thanh' },
-  { character: '元', pinyin: 'yuán', hanViet: 'nguyên', meaning: 'đầu, đầu tiên, bắt đầu', radical: '儿 (ér) – bộ Nhi', characterType: 'Chỉ sự' },
+  { character: '元', pinyin: 'yuán', hanViet: 'nguyên', meaning: 'đầu, đầu tiên, bắt đầu, đồng (tiền)', radical: '儿 (ér) – bộ Nhi', characterType: 'Chỉ sự' },
   { character: '毛', pinyin: 'máo', hanViet: 'mao', meaning: 'lông, hào', radical: '毛 (máo) – bộ Mao', characterType: 'Tượng hình' },
   { character: '分', pinyin: 'fēn', hanViet: 'phân', meaning: 'chia ra, phân chia', radical: '刀 (dāo) – bộ Đao', characterType: 'Hội ý' },
   { character: '斤', pinyin: 'jīn', hanViet: 'cân', meaning: 'cân, đơn vị cân nặng', radical: '斤 (jīn) – bộ Cân', characterType: 'Tượng hình' },
