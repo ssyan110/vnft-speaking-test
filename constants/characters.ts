@@ -137,6 +137,7 @@ const RAW_CHARACTERS: RawCharacter[] = [
   { character: '卖', pinyin: 'mài', hanViet: 'mại', meaning: 'bán', radical: '十 (shí) – bộ Thập', characterType: 'Hội ý' },
   { character: '吧', pinyin: 'ba', hanViet: 'ba', meaning: 'trợ từ ngữ khí cuối câu, biểu thị đề nghị, phỏng đoán hoặc làm nhẹ giọng', radical: '口 (kǒu) – bộ Khẩu', characterType: 'Hình thanh' },
   { character: '两', pinyin: 'liǎng', hanViet: 'lưỡng', meaning: 'hai, đôi, cặp, hai bên', radical: '一 (yī) – bộ Nhất', characterType: 'Tượng hình' },
+  { character: '别', pinyin: 'bié', hanViet: 'biệt', meaning: 'khác, đừng, tách ra, từ biệt', radical: '刂 (dāo) – bộ Đao đứng', characterType: 'Hội ý' },
 ];
 
 
