@@ -102,4 +102,32 @@ export const QUESTIONS: Question[] = [
     pinyin: 'nǐ jué de yùn dòng duì wǒ men zhòng yào ma? wèi shén me?',
     chinese: '你觉得运动对我们重要吗？为什么？',
   },
+  {
+    pinyin: 'nǐ yǒu méi yǒu yù dào guò yòu cōng míng yòu nǔ lì de rén? qǐng shuō shuō.',
+    chinese: '你有没有遇到过又聪明又努力的人？请说说。',
+  },
+  {
+    pinyin: 'nǐ gāng xué zhōng wén de shí hou jué de zěn me yàng?',
+    chinese: '你刚学中文的时候觉得怎么样？',
+  },
+  {
+    pinyin: 'huí jiā guò chūn jié, nǐ děi mǎi piào ma? nǐ nóng lì jǐ yuè mǎi?',
+    chinese: '回家过春节，你得买票吗？你农历几月买？',
+  },
+  {
+    pinyin: 'kuài yào shàng wán zhōng wén kè le, nǐ dǎ suàn zài xué ma? wèi shén me?',
+    chinese: '快要上完中文课了，你打算再学吗？为什么？',
+  },
+  {
+    pinyin: 'míng nián nǐ xī wàng zì jǐ gèng zěn me yàng? wèi shén me?',
+    chinese: '明年你希望自己更怎么样？为什么？',
+  },
+  {
+    pinyin: 'zuì jìn nǐ de gōng zuò qíng kuàng zěn me yàng?',
+    chinese: '最近你的工作情况怎么样？',
+  },
+  {
+    pinyin: 'rú guǒ nǐ de tóng shì zǒu lái zǒu qù, kàn qǐ lái hěn nán guò, nǐ huì zuò shén me? wèi shén me?',
+    chinese: '如果你的同事走来走去，看起来很难过，你会做什么？为什么？',
+  },
 ];

@@ -326,19 +326,9 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
           </div>
         </div>
         {showExtraInfo && (
-          <div className="grid gap-3 rounded-2xl border border-emerald-200 bg-white p-4 sm:grid-cols-3">
-            <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Hán Việt</div>
-              <div className="mt-1 font-semibold text-emerald-900">{currentCard.hanViet}</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Bộ thủ</div>
-              <div className="mt-1 text-sm text-emerald-700">{currentCard.radical}</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Loại chữ</div>
-              <div className="mt-1 text-sm font-semibold text-emerald-700">{currentCard.characterType}</div>
-            </div>
+          <div className="rounded-2xl border border-emerald-200 bg-white p-4">
+            <div className="text-xs uppercase tracking-[0.18em] text-emerald-500">Hán Việt</div>
+            <div className="mt-1 font-semibold text-emerald-900">{currentCard.hanViet}</div>
           </div>
         )}
       </div>

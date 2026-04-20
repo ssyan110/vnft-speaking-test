@@ -9,8 +9,6 @@ export interface ChineseCharacter {
   pinyin: string;
   hanViet: string;
   meaning: string;
-  radical: string;
-  characterType: string;
   lesson: number;
 }
 

@@ -8,8 +8,6 @@ const makeChar = (character: string, lesson: number): ChineseCharacter => ({
   pinyin: 'test',
   hanViet: 'test',
   meaning: 'test',
-  radical: 'test',
-  characterType: 'test',
   lesson,
 });
 

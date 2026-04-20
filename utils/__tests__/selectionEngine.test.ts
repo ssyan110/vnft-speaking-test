@@ -13,8 +13,6 @@ const baseChar: ChineseCharacter = {
   pinyin: 'rén',
   hanViet: 'nhân',
   meaning: 'person',
-  radical: '人',
-  characterType: 'pictographic',
   lesson: 1,
 };
 
@@ -145,7 +143,7 @@ describe('Feature: spaced-repetition-practice, Property 2: Weight monotonicity',
 
           const char: ChineseCharacter = {
             character: '人', pinyin: 'rén', hanViet: 'nhân',
-            meaning: 'person', radical: '人', characterType: 'pictographic',
+            meaning: 'person',
             lesson,
           };
 
@@ -190,7 +188,7 @@ describe('Feature: spaced-repetition-practice, Property 2: Weight monotonicity',
 
           const char: ChineseCharacter = {
             character: '人', pinyin: 'rén', hanViet: 'nhân',
-            meaning: 'person', radical: '人', characterType: 'pictographic',
+            meaning: 'person',
             lesson,
           };
 
@@ -241,12 +239,12 @@ describe('Feature: spaced-repetition-practice, Property 2: Weight monotonicity',
 
           const charLow: ChineseCharacter = {
             character: '人', pinyin: 'rén', hanViet: 'nhân',
-            meaning: 'person', radical: '人', characterType: 'pictographic',
+            meaning: 'person',
             lesson: lowLesson,
           };
           const charHigh: ChineseCharacter = {
             character: '人', pinyin: 'rén', hanViet: 'nhân',
-            meaning: 'person', radical: '人', characterType: 'pictographic',
+            meaning: 'person',
             lesson: highLesson,
           };
 
@@ -277,7 +275,7 @@ describe('Feature: spaced-repetition-practice, Property 2: Weight monotonicity',
 
           const char: ChineseCharacter = {
             character: '人', pinyin: 'rén', hanViet: 'nhân',
-            meaning: 'person', radical: '人', characterType: 'pictographic',
+            meaning: 'person',
             lesson,
           };
 
@@ -313,8 +311,6 @@ function arbChineseCharacter(index: number): ChineseCharacter {
     pinyin: `pin_${index}`,
     hanViet: `hv_${index}`,
     meaning: `meaning_${index}`,
-    radical: `rad_${index}`,
-    characterType: 'pictographic',
     lesson: 1,
   };
 }
