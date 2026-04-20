@@ -133,6 +133,10 @@ const RAW_CHARACTERS: RawCharacter[] = [
   { character: '少', pinyin: 'shǎo', hanViet: 'thiểu', meaning: 'ít, thiếu, trẻ', radical: '小 (xiǎo) – bộ Tiểu', characterType: 'Tượng hình' },
   // Bài 13 (index 108–116)
   { character: '还', pinyin: 'hái, huán', hanViet: 'hoàn', meaning: 'còn, vẫn, lại; trả, quay về', radical: '辶 (chuò) – bộ Sước', characterType: 'Hình thanh' },
+  { character: '买', pinyin: 'mǎi', hanViet: 'mãi', meaning: 'mua', radical: '乙 (yǐ) – bộ Ất', characterType: 'Hội ý' },
+  { character: '卖', pinyin: 'mài', hanViet: 'mại', meaning: 'bán', radical: '十 (shí) – bộ Thập', characterType: 'Hội ý' },
+  { character: '吧', pinyin: 'ba', hanViet: 'ba', meaning: 'trợ từ ngữ khí cuối câu, biểu thị đề nghị, phỏng đoán hoặc làm nhẹ giọng', radical: '口 (kǒu) – bộ Khẩu', characterType: 'Hình thanh' },
+  { character: '两', pinyin: 'liǎng', hanViet: 'lưỡng', meaning: 'hai, đôi, cặp, hai bên', radical: '一 (yī) – bộ Nhất', characterType: 'Tượng hình' },
 ];
 
 
