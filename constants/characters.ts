@@ -143,6 +143,9 @@ const RAW_CHARACTERS: RawCharacter[] = [
   { character: '百', pinyin: 'bǎi', hanViet: 'bách', meaning: 'một trăm' },
   { character: '千', pinyin: 'qiān', hanViet: 'thiên', meaning: 'một nghìn' },
   { character: '万', pinyin: 'wàn', hanViet: 'vạn', meaning: 'mười nghìn' },
+  { character: '美', pinyin: 'měi', hanViet: 'mỹ', meaning: 'đẹp, đẹp đẽ' },
+  { character: '民', pinyin: 'mín', hanViet: 'dân', meaning: 'dân, người dân, dân thường' },
+  { character: '先', pinyin: 'xiān', hanViet: 'tiên', meaning: 'trước, trước tiên, ưu tiên' },
 ];
 
 
