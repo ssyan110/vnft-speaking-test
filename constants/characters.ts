@@ -146,6 +146,11 @@ const RAW_CHARACTERS: RawCharacter[] = [
   { character: '美', pinyin: 'měi', hanViet: 'mỹ', meaning: 'đẹp, đẹp đẽ' },
   { character: '民', pinyin: 'mín', hanViet: 'dân', meaning: 'dân, người dân, dân thường' },
   { character: '先', pinyin: 'xiān', hanViet: 'tiên', meaning: 'trước, trước tiên, ưu tiên' },
+  { character: '客', pinyin: 'kè', hanViet: 'khách', meaning: 'khách, người đến từ bên ngoài' },
+  { character: '气', pinyin: 'qì', hanViet: 'khí', meaning: 'hơi, khí, không khí' },
+  { character: '住', pinyin: 'zhù', hanViet: 'trú', meaning: 'ở, cư trú, dừng lại' },
+  { character: '办', pinyin: 'bàn', hanViet: 'biện', meaning: 'làm, xử lý, giải quyết công việc' },
+  { character: '公', pinyin: 'gōng', hanViet: 'công', meaning: 'của chung, công cộng' },
 ];
 
 
