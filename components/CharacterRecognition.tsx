@@ -24,10 +24,6 @@ const ROUND_SIZE = 10;
 type PracticeState = 'idle' | 'prompt' | 'answer' | 'round_complete' | 'all_done';
 type ReviewMode = 'all' | 'hard';
 
-interface CharacterRecognitionProps {
-  onBack: () => void;
-}
-
 const createInitialStats = (): PracticeSessionStats => ({ reviewed: 0, hard: 0, easy: 0 });
 
 /** Merge base characters with custom ones, auto-assigning lessons to custom chars */
@@ -41,7 +37,7 @@ function buildAllCharacters(customs: RawCustomCharacter[]): ChineseCharacter[] {
   return [...CHINESE_CHARACTERS, ...customWithLesson];
 }
 
-const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) => {
+const CharacterRecognition: React.FC = () => {
   const storedState = loadStoredState();
   const [practiceState, setPracticeState] = useState<PracticeState>('idle');
   const [reviewMode, setReviewMode] = useState<ReviewMode>('all');
@@ -330,8 +326,7 @@ const CharacterRecognition: React.FC<CharacterRecognitionProps> = ({ onBack }) =
       <header className="border-b border-emerald-200/80 bg-emerald-50/90 backdrop-blur">
         <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between gap-3">
-            <button onClick={onBack} className="shrink-0 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors">← Quay lại</button>
-            <div className="min-w-0 flex-1 text-center"><h1 className="truncate text-xl font-bold text-emerald-800 sm:text-2xl">Tập nhận diện chữ Hán</h1></div>
+            <div className="min-w-0 flex-1"><h1 className="truncate text-xl font-bold text-emerald-800 sm:text-2xl">Nhận diện chữ Hán</h1></div>
             <button onClick={handleResetProgress} className="shrink-0 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors">Reset</button>
           </div>
           <div className="mt-3 flex gap-2">
